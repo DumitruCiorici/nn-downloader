@@ -114,7 +114,7 @@ const UI = {
             const videoId = this.currentVideoId;
             if (!videoId) throw new Error('Video info not found');
 
-            window.location.href = `/api/download/${videoId}/${itag}`;
+            window.location.href = `/download/${videoId}/${itag}`;
             
             setTimeout(() => {
                 progress.style.width = '100%';
@@ -140,7 +140,7 @@ document.getElementById('youtubeUrl').addEventListener('input', async function(e
     }
 
     try {
-        const response = await fetch('/api/info', {
+        const response = await fetch('/convert', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
