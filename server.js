@@ -10,68 +10,73 @@ app.use(bodyParser.json());
 app.use('/public', express.static(path.join(__dirname, 'public')));
 app.use(cors());
 
-// Funcție pentru a obține toate formatele disponibile
-async function getAllFormats(url) {
-    const info = await ytdl.getInfo(url);
-    
-    // Filtrăm și organizăm formatele
-    const formats = {
-        audio: [],
-        video: []
-    };
-
-    // Procesăm formatele audio
-    const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
-    formats.audio = audioFormats.map(format => ({
-        quality: format.audioBitrate + 'kbps',
-        mimeType: format.mimeType,
-        contentLength: format.contentLength,
-        itag: format.itag
-    })).sort((a, b) => b.quality.localeCompare(a.quality));
-
-    // Procesăm formatele video
-    const videoFormats = ytdl.filterFormats(info.formats, 'videoandaudio');
-    formats.video = videoFormats.map(format => ({
-        quality: format.qualityLabel,
-        mimeType: format.mimeType,
-        fps: format.fps,
-        contentLength: format.contentLength,
-        itag: format.itag
-    })).sort((a, b) => {
-        const aRes = parseInt(a.quality);
-        const bRes = parseInt(b.quality);
-        return bRes - aRes;
-    });
-
-    return {
-        formats,
-        info,
-        bestAudio: formats.audio[0],
-        bestVideo: formats.video[0]
-    };
+// Funcție pentru a gestiona erorile
+function handleError(error, res) {
+    console.error('Error:', error);
+    if (!res.headersSent) {
+        res.status(500).json({ 
+            error: error.message || 'Internal server error',
+            details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        });
+    }
 }
 
 // Endpoint pentru preview
 app.post('/convert', async (req, res) => {
     try {
         const { url } = req.body;
-        const { info, formats } = await getAllFormats(url);
-        
-        if (parseInt(info.videoDetails.lengthSeconds) > 3600) {
-            throw new Error('Video is too long. Maximum length is 60 minutes.');
+        if (!url) {
+            return res.status(400).json({ error: 'URL is required' });
         }
+
+        // Adăugăm timeout pentru request
+        const timeout = setTimeout(() => {
+            throw new Error('Request timeout');
+        }, 30000);
+
+        const info = await ytdl.getInfo(url, {
+            requestOptions: {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                }
+            }
+        });
+
+        clearTimeout(timeout);
+
+        // Procesăm formatele disponibile
+        const formats = {
+            video: [],
+            audio: []
+        };
+
+        // Procesăm formatele video
+        const videoFormats = ytdl.filterFormats(info.formats, 'videoandaudio');
+        formats.video = videoFormats.map(format => ({
+            quality: format.qualityLabel,
+            mimeType: format.mimeType,
+            contentLength: format.contentLength,
+            itag: format.itag
+        }));
+
+        // Procesăm formatele audio
+        const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
+        formats.audio = audioFormats.map(format => ({
+            quality: format.audioBitrate + 'kbps',
+            mimeType: format.mimeType,
+            contentLength: format.contentLength,
+            itag: format.itag
+        }));
 
         res.json({
             title: info.videoDetails.title,
             thumbnail: info.videoDetails.thumbnails[0].url,
             duration: info.videoDetails.lengthSeconds,
             author: info.videoDetails.author.name,
-            isLive: info.videoDetails.isLive,
             formats: formats
         });
     } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ error: error.message || 'Could not process video' });
+        handleError(error, res);
     }
 });
 
@@ -79,50 +84,61 @@ app.post('/convert', async (req, res) => {
 app.post('/download', async (req, res) => {
     try {
         const { url, format, quality } = req.body;
-        const { info, formats } = await getAllFormats(url);
-        
-        if (parseInt(info.videoDetails.lengthSeconds) > 3600) {
-            throw new Error('Video is too long. Maximum length is 60 minutes.');
+        if (!url) {
+            return res.status(400).json({ error: 'URL is required' });
         }
 
-        if (info.videoDetails.isLive) {
-            throw new Error('Cannot download live streams');
-        }
-
-        const title = info.videoDetails.title.replace(/[^\w\s]/gi, '');
-        let selectedFormat;
-
-        if (format === 'mp3') {
-            selectedFormat = formats.audio.find(f => f.quality === quality) || formats.audio[0];
-            res.setHeader('Content-Type', 'audio/mpeg');
-            res.setHeader('Content-Disposition', `attachment; filename="${title}.mp3"`);
-        } else {
-            selectedFormat = formats.video.find(f => f.quality === quality) || formats.video[0];
-            res.setHeader('Content-Type', 'video/mp4');
-            res.setHeader('Content-Disposition', `attachment; filename="${title}.mp4"`);
-        }
-
-        const stream = ytdl(url, {
-            quality: selectedFormat.itag
-        });
-
-        stream.on('error', (err) => {
-            console.error('Stream error:', err);
-            if (!res.headersSent) {
-                res.status(500).json({ error: 'Download failed' });
+        const info = await ytdl.getInfo(url, {
+            requestOptions: {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                }
             }
         });
 
-        stream.pipe(res);
+        const title = info.videoDetails.title.replace(/[^\w\s]/gi, '');
 
-    } catch (error) {
-        console.error('Error:', error);
-        if (!res.headersSent) {
-            res.status(500).json({ error: error.message || 'Download failed' });
+        let selectedFormat;
+        if (format === 'mp3') {
+            selectedFormat = ytdl.chooseFormat(info.formats, {
+                quality: 'highestaudio',
+                filter: 'audioonly'
+            });
+            res.header('Content-Type', 'audio/mpeg');
+            res.header('Content-Disposition', `attachment; filename="${title}.mp3"`);
+        } else {
+            selectedFormat = ytdl.chooseFormat(info.formats, {
+                quality: 'highest',
+                filter: 'audioandvideo'
+            });
+            res.header('Content-Type', 'video/mp4');
+            res.header('Content-Disposition', `attachment; filename="${title}.mp4"`);
         }
+
+        const stream = ytdl(url, { format: selectedFormat });
+
+        // Gestionare erori pentru stream
+        stream.on('error', (err) => {
+            handleError(err, res);
+        });
+
+        // Timeout pentru stream
+        const timeout = setTimeout(() => {
+            stream.destroy();
+            handleError(new Error('Download timeout'), res);
+        }, 300000); // 5 minute timeout
+
+        stream.on('end', () => {
+            clearTimeout(timeout);
+        });
+
+        stream.pipe(res);
+    } catch (error) {
+        handleError(error, res);
     }
 });
 
+// Rută pentru index.html
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
