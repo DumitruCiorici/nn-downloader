@@ -6,7 +6,6 @@ const ytdl = require('ytdl-core');
 
 const app = express();
 
-// Configurare middleware
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use('/public', express.static(path.join(__dirname, 'public')));
 app.use(cors());
@@ -18,24 +17,35 @@ app.use((req, res, next) => {
     next();
 });
 
+// Funcție pentru a verifica și extrage video ID
+async function getVideoInfo(url) {
+    try {
+        const videoId = ytdl.getVideoID(url);
+        const info = await ytdl.getBasicInfo(videoId, {
+            requestOptions: {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                }
+            }
+        });
+        return { videoId, info };
+    } catch (error) {
+        console.error('Error getting video info:', error);
+        throw new Error('Could not process YouTube URL');
+    }
+}
+
 // Endpoint pentru preview
 app.post('/convert', async (req, res) => {
     const timestamp = new Date().toISOString();
     const { url } = req.body;
-    console.log(`[${timestamp}] Convert request for URL: ${url}`);
     
-    try {
-        let videoId;
-        try {
-            videoId = ytdl.getVideoID(url);
-        } catch (error) {
-            console.log(`[${timestamp}] Could not extract video ID from URL: ${url}`);
-            return res.status(400).json({ error: 'Could not process YouTube URL' });
-        }
+    if (!url) {
+        return res.status(400).json({ error: 'URL is required' });
+    }
 
-        console.log(`[${timestamp}] Video ID: ${videoId}`);
-        
-        const info = await ytdl.getBasicInfo(videoId);
+    try {
+        const { info } = await getVideoInfo(url);
         console.log(`[${timestamp}] Successfully fetched info for video: ${info.videoDetails.title}`);
         
         res.json({
@@ -44,7 +54,7 @@ app.post('/convert', async (req, res) => {
         });
     } catch (error) {
         console.error(`[${timestamp}] Preview error:`, error);
-        res.status(500).json({ error: 'Could not fetch video info' });
+        res.status(500).json({ error: error.message });
     }
 });
 
@@ -52,27 +62,31 @@ app.post('/convert', async (req, res) => {
 app.post('/download', async (req, res) => {
     const timestamp = new Date().toISOString();
     const { url, format } = req.body;
-    console.log(`[${timestamp}] Download request - URL: ${url}, Format: ${format}`);
     
-    try {
-        let videoId;
-        try {
-            videoId = ytdl.getVideoID(url);
-        } catch (error) {
-            console.log(`[${timestamp}] Could not extract video ID from URL: ${url}`);
-            return res.status(400).json({ error: 'Could not process YouTube URL' });
-        }
+    if (!url) {
+        return res.status(400).json({ error: 'URL is required' });
+    }
 
-        console.log(`[${timestamp}] Video ID: ${videoId}`);
-        
-        const info = await ytdl.getBasicInfo(videoId);
+    try {
+        const { videoId, info } = await getVideoInfo(url);
         const title = info.videoDetails.title.replace(/[^\w\s]/gi, '');
         console.log(`[${timestamp}] Starting download for: ${title}`);
 
         const options = {
-            quality: format === 'mp3' ? 'highestaudio' : 'highest',
-            filter: format === 'mp3' ? 'audioonly' : 'audioandvideo'
+            requestOptions: {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                }
+            }
         };
+
+        if (format === 'mp3') {
+            options.quality = 'highestaudio';
+            options.filter = 'audioonly';
+        } else {
+            options.quality = 'highestvideo';
+            options.filter = 'audioandvideo';
+        }
 
         const stream = ytdl(videoId, options);
 
@@ -99,7 +113,7 @@ app.post('/download', async (req, res) => {
     } catch (error) {
         console.error(`[${timestamp}] Download error:`, error);
         if (!res.headersSent) {
-            res.status(500).json({ error: 'Download failed' });
+            res.status(500).json({ error: error.message });
         }
     }
 });
@@ -116,6 +130,5 @@ app.get('/favicon.ico', (req, res) => {
 
 const PORT = process.env.PORT || 3005;
 app.listen(PORT, () => {
-    const timestamp = new Date().toISOString();
-    console.log(`[${timestamp}] Server running on port ${PORT}`);
+    console.log(`Server running on port ${PORT}`);
 }); 
