@@ -4,68 +4,70 @@ const path = require('path');
 const bodyParser = require('body-parser');
 const ytdl = require('ytdl-core');
 
-// Configurare Express
 const app = express();
+
+// Configurare middleware
 app.use(bodyParser.json());
 app.use('/public', express.static(path.join(__dirname, 'public')));
 app.use(cors());
 
-// Cache pentru informații video
-const videoCache = new Map();
+// Funcție pentru a extrage ID-ul video
+function getYoutubeID(url) {
+    try {
+        return ytdl.getVideoID(url);
+    } catch (error) {
+        return null;
+    }
+}
 
-// Endpoint pentru informații video (schimbat din /api/info în /convert)
+// Endpoint pentru preview video
 app.post('/convert', async (req, res) => {
     try {
         const { url } = req.body;
+        
         if (!url) {
-            return res.status(400).json({ error: 'URL is required' });
+            return res.status(400).json({ error: 'Please enter a YouTube URL' });
         }
 
-        const videoId = ytdl.getVideoID(url);
-        if (!videoId) {
+        // Verificăm dacă URL-ul este valid
+        const videoID = getYoutubeID(url);
+        if (!videoID) {
             return res.status(400).json({ error: 'Invalid YouTube URL' });
         }
 
-        const info = await ytdl.getInfo(url, {
-            requestOptions: {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.5'
-                }
-            }
-        });
+        console.log('Fetching video info for ID:', videoID); // Debug log
 
-        // Procesăm formatele
+        // Obținem informațiile video
+        const info = await ytdl.getInfo(url);
+        console.log('Video info fetched successfully'); // Debug log
+
+        // Procesăm formatele disponibile
         const formats = {
             video: [],
             audio: []
         };
 
+        // Filtrăm formatele
         info.formats.forEach(format => {
-            const item = {
-                itag: format.itag,
-                mimeType: format.mimeType,
-                quality: format.qualityLabel || `${format.audioBitrate}kbps`,
-                size: format.contentLength,
-                url: format.url
-            };
-
             if (format.hasVideo && format.hasAudio) {
-                formats.video.push(item);
-            } else if (!format.hasVideo && format.hasAudio) {
-                formats.audio.push(item);
+                formats.video.push({
+                    itag: format.itag,
+                    quality: format.qualityLabel,
+                    size: format.contentLength,
+                    mimeType: format.mimeType
+                });
+            } else if (format.hasAudio && !format.hasVideo) {
+                formats.audio.push({
+                    itag: format.itag,
+                    quality: `${format.audioBitrate}kbps`,
+                    size: format.contentLength,
+                    mimeType: format.mimeType
+                });
             }
         });
 
-        // Salvăm în cache
-        videoCache.set(videoId, {
-            timestamp: Date.now(),
-            formats: formats
-        });
-
+        // Returnăm informațiile necesare
         res.json({
-            id: videoId,
             title: info.videoDetails.title,
             thumbnail: info.videoDetails.thumbnails[0].url,
             duration: info.videoDetails.lengthSeconds,
@@ -74,59 +76,46 @@ app.post('/convert', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Info error:', error);
+        console.error('Error in /convert:', error); // Debug log
         res.status(500).json({ 
-            error: 'Could not fetch video info',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+            error: 'Could not process video',
+            details: error.message 
         });
     }
 });
 
-// Endpoint pentru descărcare (schimbat din /api/download în /download)
-app.get('/download/:videoId/:itag', async (req, res) => {
+// Endpoint pentru descărcare
+app.post('/download', async (req, res) => {
     try {
-        const { videoId, itag } = req.params;
-        const cached = videoCache.get(videoId);
+        const { url, itag } = req.body;
 
-        if (!cached || Date.now() - cached.timestamp > 300000) {
-            return res.status(404).json({ error: 'Video info expired. Please refresh.' });
+        if (!url || !itag) {
+            return res.status(400).json({ error: 'Missing URL or format selection' });
         }
 
-        const format = [...cached.formats.video, ...cached.formats.audio]
-            .find(f => f.itag === parseInt(itag));
+        console.log('Starting download for itag:', itag); // Debug log
 
-        if (!format) {
-            return res.status(404).json({ error: 'Format not found' });
-        }
+        const stream = ytdl(url, {
+            quality: itag
+        });
 
-        res.redirect(format.url);
+        // Setăm headers pentru descărcare
+        res.header('Content-Disposition', 'attachment;');
+        stream.pipe(res);
+
     } catch (error) {
-        console.error('Download error:', error);
+        console.error('Error in /download:', error); // Debug log
         res.status(500).json({ error: 'Download failed' });
     }
 });
 
-// Rute statice
+// Servim index.html
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.get('/favicon.ico', (req, res) => {
-    res.status(204).end();
-});
-
-// Pornire server
+// Pornim serverul
 const PORT = process.env.PORT || 3005;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
-});
-
-// Curățare cache periodică
-setInterval(() => {
-    const now = Date.now();
-    for (const [key, value] of videoCache.entries()) {
-        if (now - value.timestamp > 300000) { // 5 minute
-            videoCache.delete(key);
-        }
-    }
-}, 60000); // Verifică la fiecare minut 
+}); 
