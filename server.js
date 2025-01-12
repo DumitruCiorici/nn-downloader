@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const bodyParser = require('body-parser');
-const fetch = require('node-fetch');
+const ytdl = require('ytdl-core');
 
 const app = express();
 
@@ -11,77 +11,73 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(cors());
 app.use(bodyParser.json());
 
-// API Key pentru RapidAPI
-const RAPID_API_KEY = process.env.RAPID_API_KEY;
-
 // Endpoint pentru informații video și formate disponibile
 app.post('/convert', async (req, res) => {
     const { url } = req.body;
     
-    try {
-        const response = await fetch('https://youtube-video-download-info.p.rapidapi.com/dl', {
-            method: 'POST',
-            headers: {
-                'content-type': 'application/json',
-                'X-RapidAPI-Key': RAPID_API_KEY,
-                'X-RapidAPI-Host': 'youtube-video-download-info.p.rapidapi.com'
-            },
-            body: JSON.stringify({ url })
-        });
+    if (!url) {
+        return res.status(400).json({ error: 'URL is missing' });
+    }
 
-        const data = await response.json();
+    try {
+        // Obținem informații despre video
+        const info = await ytdl.getInfo(url);
         
-        // Formatăm răspunsul pentru client
+        // Organizăm formatele disponibile
+        const formats = {
+            audio: info.formats
+                .filter(format => format.mimeType?.includes('audio'))
+                .map(format => ({
+                    itag: format.itag,
+                    quality: format.audioQuality || 'Standard',
+                    size: format.contentLength,
+                    format: 'mp3'
+                })),
+            video: info.formats
+                .filter(format => format.mimeType?.includes('video') && format.hasVideo && format.hasAudio)
+                .map(format => ({
+                    itag: format.itag,
+                    quality: format.qualityLabel,
+                    size: format.contentLength,
+                    format: 'mp4'
+                }))
+        };
+
         res.json({
-            title: data.title,
-            thumbnail: data.thumbnail,
-            formats: {
-                audio: data.formats.filter(f => f.mimeType.includes('audio')),
-                video: data.formats.filter(f => f.mimeType.includes('video'))
-            }
+            title: info.videoDetails.title,
+            thumbnail: info.videoDetails.thumbnails[0].url,
+            formats
         });
     } catch (error) {
         console.error('Error:', error);
-        res.status(500).json({ error: 'Error processing video' });
+        res.status(500).json({ error: error.message || 'Error processing video' });
     }
 });
 
-// Endpoint pentru descărcare directă
+// Endpoint pentru descărcare
 app.post('/download', async (req, res) => {
     const { url, format, quality } = req.body;
     
     try {
-        const response = await fetch('https://youtube-video-download-info.p.rapidapi.com/dl', {
-            method: 'POST',
-            headers: {
-                'content-type': 'application/json',
-                'X-RapidAPI-Key': RAPID_API_KEY,
-                'X-RapidAPI-Host': 'youtube-video-download-info.p.rapidapi.com'
-            },
-            body: JSON.stringify({ 
-                url,
-                format,
-                quality
-            })
-        });
-
-        const data = await response.json();
+        const info = await ytdl.getInfo(url);
+        const videoTitle = info.videoDetails.title.replace(/[^\w\s]/gi, '');
         
-        // Descărcăm și trimitem fișierul direct către client
-        const fileResponse = await fetch(data.downloadUrl);
-        const buffer = await fileResponse.buffer();
-
         // Setăm headers pentru descărcare
-        res.setHeader('Content-Disposition', `attachment; filename="${data.title}.${format}"`);
         res.setHeader('Content-Type', format === 'mp3' ? 'audio/mpeg' : 'video/mp4');
-        res.setHeader('Content-Length', buffer.length);
-        
-        // Trimitem fișierul
-        res.send(buffer);
+        res.setHeader('Content-Disposition', `attachment; filename="${videoTitle}.${format}"`);
+
+        // Configurăm opțiunile de descărcare
+        const options = {
+            quality: quality || 'highest',
+            filter: format === 'mp3' ? 'audioonly' : 'audioandvideo'
+        };
+
+        // Stream video direct către client
+        ytdl(url, options).pipe(res);
 
     } catch (error) {
         console.error('Error:', error);
-        res.status(500).json({ error: 'Download failed' });
+        res.status(500).json({ error: 'Download failed: ' + error.message });
     }
 });
 

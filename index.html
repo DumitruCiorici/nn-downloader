@@ -38,7 +38,14 @@
                     <img id="thumbnail" src="" alt="Video thumbnail" loading="lazy">
                     <div class="video-info">
                         <h3 id="videoTitle"></h3>
-                        <p id="videoDuration"></p>
+                        <div class="format-info">
+                            <span class="format-badge video">
+                                <i class="fas fa-video"></i> Available in HD
+                            </span>
+                            <span class="format-badge audio">
+                                <i class="fas fa-music"></i> High Quality Audio
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -48,9 +55,12 @@
                 <div class="quality-options" id="qualityOptions">
                     <!-- Opțiunile vor fi populate dinamic -->
                 </div>
+                <button class="back-button" onclick="hideQualitySelector()">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
             </div>
 
-            <div class="button-group">
+            <div class="button-group" id="formatButtons">
                 <button onclick="showQualityOptions('video')" class="download-btn video-btn">
                     <i class="fas fa-video"></i>
                     <span>
