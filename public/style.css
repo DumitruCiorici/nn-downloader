@@ -242,30 +242,32 @@ input:focus {
 }
 
 .progress-bar {
-    background: #e0e0e0;
-    height: 8px;
-    border-radius: 4px;
-    margin-bottom: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
     overflow: hidden;
+    margin: 1rem 0;
+    height: 6px;
 }
 
 .progress {
-    height: 100%;
-    background: linear-gradient(90deg, 
-        var(--accent-color), 
-        rgba(255, 255, 255, 0.8), 
-        var(--accent-color)
+    background: linear-gradient(
+        90deg,
+        var(--accent-color) 0%,
+        rgba(255, 255, 255, 0.8) 50%,
+        var(--accent-color) 100%
     );
     background-size: 200% 100%;
     animation: gradient 2s linear infinite;
-    width: 0;
+    height: 100%;
     transition: width 0.3s ease;
 }
 
 #statusText {
     text-align: center;
-    color: #666;
+    color: var(--text-color);
     font-size: 0.9rem;
+    min-height: 20px;
+    margin-top: 0.5rem;
 }
 
 footer {
@@ -374,4 +376,39 @@ footer i {
         width: 100%;
         height: auto;
     }
+}
+
+/* Adăugăm stiluri pentru loading state */
+.loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 24px;
+    height: 24px;
+    margin: -12px 0 0 -12px;
+    border: 2px solid var(--accent-color);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spinner 0.6s linear infinite;
+}
+
+@keyframes spinner {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.error {
+    color: #ff4444 !important;
+}
+
+.success {
+    color: #00ff00 !important;
 } 
