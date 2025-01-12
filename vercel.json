@@ -3,40 +3,16 @@
     "builds": [
         {
             "src": "server.js",
-            "use": "@vercel/node",
-            "config": {
-                "maxDuration": 300
-            }
-        },
-        {
-            "src": "public/**",
-            "use": "@vercel/static"
-        },
-        {
-            "src": "index.html",
-            "use": "@vercel/static"
+            "use": "@vercel/node"
         }
     ],
     "routes": [
         {
-            "src": "/",
-            "dest": "/index.html"
-        },
-        {
-            "src": "/public/(.*)",
-            "dest": "/public/$1"
-        },
-        {
-            "src": "/convert",
-            "dest": "/server.js"
-        },
-        {
-            "src": "/download",
-            "dest": "/server.js"
-        },
-        {
             "src": "/(.*)",
-            "dest": "/server.js"
+            "dest": "server.js"
         }
-    ]
+    ],
+    "env": {
+        "NODE_ENV": "production"
+    }
 } 
