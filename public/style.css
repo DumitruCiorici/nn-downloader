@@ -139,11 +139,13 @@ input:focus {
 }
 
 .preview {
-    background: var(--bg-color);
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     padding: 1rem;
     margin-bottom: 1.5rem;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     opacity: 0;
     transform: translateY(10px);
     animation: slideIn 0.3s ease forwards;
@@ -160,6 +162,8 @@ input:focus {
     height: 90px;
     object-fit: cover;
     border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
 }
 
 .video-info h3 {
@@ -184,7 +188,7 @@ input:focus {
     border-radius: 12px;
     cursor: pointer;
     font-family: inherit;
-    transition: all 0.3s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     color: var(--accent-color);
     background: transparent;
     position: relative;
@@ -225,6 +229,8 @@ input:focus {
 
 .download-btn:hover {
     color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
 }
 
 .download-btn:hover small {
@@ -233,6 +239,10 @@ input:focus {
 
 .download-btn:hover i {
     color: var(--primary-color);
+}
+
+.download-btn:active {
+    transform: translateY(0);
 }
 
 .progress-container {
@@ -248,11 +258,14 @@ input:focus {
     margin: 1rem 0;
     height: 6px;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    transition: transform 0.3s ease;
+    transform: scaleX(0.98);
+    transform-origin: left;
 }
 
 .progress-bar.active {
     opacity: 1;
+    transform: scaleX(1);
 }
 
 .progress {
@@ -439,4 +452,30 @@ footer i {
 
 .success {
     color: #00ff00 !important;
+}
+
+/* Stiluri pentru informațiile video */
+.video-info {
+    flex: 1;
+}
+
+.video-details {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+#videoAuthor {
+    color: var(--accent-color);
+    font-weight: 500;
+}
+
+#videoDuration {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'Orbitron', monospace;
 } 

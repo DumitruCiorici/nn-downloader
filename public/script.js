@@ -1,9 +1,10 @@
 let currentVideoId = null;
 
-// Funcție pentru validarea URL-ului
-function isValidYouTubeUrl(url) {
-    // Acceptăm orice URL care conține youtube.com sau youtu.be
-    return url.includes('youtube.com') || url.includes('youtu.be');
+// Funcție pentru formatarea duratei
+function formatDuration(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
 // Actualizăm event listener-ul pentru input
@@ -16,7 +17,7 @@ document.getElementById('youtubeUrl').addEventListener('input', async function(e
         return;
     }
 
-    if (!isValidYouTubeUrl(url)) {
+    if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
         previewDiv.style.display = 'none';
         return;
     }
@@ -38,6 +39,8 @@ document.getElementById('youtubeUrl').addEventListener('input', async function(e
         
         document.getElementById('thumbnail').src = data.thumbnail;
         document.getElementById('videoTitle').textContent = data.title;
+        document.getElementById('videoAuthor').textContent = `by ${data.author}`;
+        document.getElementById('videoDuration').textContent = formatDuration(data.duration);
         previewDiv.style.display = 'flex';
         
     } catch (error) {
@@ -46,13 +49,13 @@ document.getElementById('youtubeUrl').addEventListener('input', async function(e
     }
 });
 
-// Actualizăm funcția de procesare video
+// Funcție pentru procesare video
 async function processVideo(format) {
     const urlInput = document.getElementById('youtubeUrl');
     const statusText = document.getElementById('statusText');
     const progressBar = document.getElementById('progressBar');
     const progress = document.getElementById('progress');
-    const button = event.currentTarget; // Butonul care a fost apăsat
+    const button = event.currentTarget;
     const url = urlInput.value.trim();
 
     // Resetare UI
@@ -65,10 +68,6 @@ async function processVideo(format) {
     try {
         if (!url) {
             throw new Error('Please enter a YouTube URL');
-        }
-
-        if (!isValidYouTubeUrl(url)) {
-            throw new Error('Please enter a valid YouTube URL');
         }
 
         // Afișare loading state
@@ -94,8 +93,9 @@ async function processVideo(format) {
         statusText.textContent = 'Processing download...';
 
         const blob = await response.blob();
-        const downloadUrl = window.URL.createObjectURL(blob);
+        progress.style.width = '80%';
         
+        const downloadUrl = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = downloadUrl;
         a.download = `download.${format}`;

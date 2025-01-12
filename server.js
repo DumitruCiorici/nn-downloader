@@ -17,27 +17,30 @@ app.use((req, res, next) => {
     next();
 });
 
-// Funcție pentru a verifica și extrage video ID
+// Funcție optimizată pentru extragerea informațiilor video
 async function getVideoInfo(url) {
     try {
         const videoId = ytdl.getVideoID(url);
-        const info = await ytdl.getBasicInfo(videoId, {
+        const info = await ytdl.getInfo(videoId, {
             requestOptions: {
                 headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                    // Simulăm un browser real
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                    'Accept-Language': 'en-US,en;q=0.5',
+                    'Connection': 'keep-alive',
+                    'Upgrade-Insecure-Requests': '1'
                 }
             }
         });
         return { videoId, info };
     } catch (error) {
-        console.error('Error getting video info:', error);
         throw new Error('Could not process YouTube URL');
     }
 }
 
 // Endpoint pentru preview
 app.post('/convert', async (req, res) => {
-    const timestamp = new Date().toISOString();
     const { url } = req.body;
     
     if (!url) {
@@ -46,21 +49,20 @@ app.post('/convert', async (req, res) => {
 
     try {
         const { info } = await getVideoInfo(url);
-        console.log(`[${timestamp}] Successfully fetched info for video: ${info.videoDetails.title}`);
-        
+        // Returnăm mai multe informații utile
         res.json({
             title: info.videoDetails.title,
-            thumbnail: info.videoDetails.thumbnails[0].url
+            thumbnail: info.videoDetails.thumbnails[0].url,
+            duration: info.videoDetails.lengthSeconds,
+            author: info.videoDetails.author.name
         });
     } catch (error) {
-        console.error(`[${timestamp}] Preview error:`, error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Endpoint pentru descărcare
+// Endpoint optimizat pentru descărcare
 app.post('/download', async (req, res) => {
-    const timestamp = new Date().toISOString();
     const { url, format } = req.body;
     
     if (!url) {
@@ -70,7 +72,6 @@ app.post('/download', async (req, res) => {
     try {
         const { videoId, info } = await getVideoInfo(url);
         const title = info.videoDetails.title.replace(/[^\w\s]/gi, '');
-        console.log(`[${timestamp}] Starting download for: ${title}`);
 
         const options = {
             requestOptions: {
@@ -81,37 +82,52 @@ app.post('/download', async (req, res) => {
         };
 
         if (format === 'mp3') {
-            options.quality = 'highestaudio';
-            options.filter = 'audioonly';
+            // Optimizat pentru audio
+            const audioFormat = ytdl.chooseFormat(info.formats, {
+                quality: 'highestaudio',
+                filter: 'audioonly'
+            });
+            
+            options.format = audioFormat;
+            res.setHeader('Content-Type', 'audio/mpeg');
+            res.setHeader('Content-Disposition', `attachment; filename="${title}.mp3"`);
         } else {
-            options.quality = 'highestvideo';
-            options.filter = 'audioandvideo';
+            // Optimizat pentru video
+            const videoFormat = ytdl.chooseFormat(info.formats, {
+                quality: 'highest',
+                filter: format => format.hasVideo && format.hasAudio
+            });
+            
+            options.format = videoFormat;
+            res.setHeader('Content-Type', 'video/mp4');
+            res.setHeader('Content-Disposition', `attachment; filename="${title}.mp4"`);
         }
 
         const stream = ytdl(videoId, options);
 
+        // Gestionare îmbunătățită a stream-ului
         stream.on('error', (err) => {
-            console.error(`[${timestamp}] Stream error:`, err);
+            console.error('Stream error:', err);
             if (!res.headersSent) {
                 res.status(500).json({ error: 'Download failed' });
             }
         });
 
-        stream.once('response', () => {
-            console.log(`[${timestamp}] Stream started for: ${title}`);
-            if (format === 'mp3') {
-                res.setHeader('Content-Type', 'audio/mpeg');
-                res.setHeader('Content-Disposition', `attachment; filename="${title}.mp3"`);
-            } else {
-                res.setHeader('Content-Type', 'video/mp4');
-                res.setHeader('Content-Disposition', `attachment; filename="${title}.mp4"`);
+        // Adăugăm un timeout pentru a evita blocajele
+        const timeout = setTimeout(() => {
+            if (!res.headersSent) {
+                res.status(504).json({ error: 'Download timeout' });
             }
+            stream.destroy();
+        }, 300000); // 5 minute timeout
+
+        stream.once('response', () => {
+            clearTimeout(timeout);
         });
 
         stream.pipe(res);
 
     } catch (error) {
-        console.error(`[${timestamp}] Download error:`, error);
         if (!res.headersSent) {
             res.status(500).json({ error: error.message });
         }
