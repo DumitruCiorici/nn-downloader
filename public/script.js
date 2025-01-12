@@ -86,11 +86,11 @@ async function processVideo(format) {
         const downloadResponse = await fetch(`${API_URL}/download`, fetchOptions);
         const { downloadUrl } = await downloadResponse.json();
         
-        // Deschidem URL-ul de descărcare într-o nouă fereastră
+        // Deschidem URL-ul într-o fereastră nouă
         window.open(downloadUrl, '_blank');
 
         progress.style.width = '100%';
-        statusText.textContent = 'Download started!';
+        statusText.textContent = 'Opening download page...';
 
     } catch (error) {
         console.error('Error:', error);

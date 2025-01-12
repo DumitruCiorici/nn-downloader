@@ -53,14 +53,24 @@ app.post('/download', async (req, res) => {
     const { url, format } = req.body;
     
     try {
-        // Aici vom returna un URL pentru descărcare
-        const downloadUrl = `https://api.download.video/v1/youtube/${format}?url=${encodeURIComponent(url)}`;
+        // Folosim y2mate ca alternativă
+        const downloadUrl = format === 'mp3' 
+            ? `https://www.y2mate.com/youtube-mp3/${getVideoId(url)}`
+            : `https://www.y2mate.com/youtube/${getVideoId(url)}`;
+            
         res.json({ downloadUrl });
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ error: 'Download error' });
     }
 });
+
+// Adăugăm funcția getVideoId și aici
+function getVideoId(url) {
+    const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[7].length === 11) ? match[7] : false;
+}
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
