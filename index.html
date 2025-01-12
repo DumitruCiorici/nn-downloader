@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NN Music Downloader</title>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="initial-loading" id="initialLoading">
+        <div class="loader">
+            <div class="nn-logo">NN</div>
+            <p class="loading-text">Loading...</p>
+        </div>
+    </div>
+    
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loader">
+            <svg class="circular" viewBox="25 25 50 50">
+                <circle class="path" cx="50" cy="50" r="20" fill="none" stroke-width="3" stroke-miterlimit="10"/>
+            </svg>
+            <p class="loading-text">Se procesează...</p>
+        </div>
+    </div>
+    
+    <div class="wave-container">
+        <div class="wave"></div>
+        <div class="wave"></div>
+        <div class="wave"></div>
+    </div>
+    
+    <div class="container">
+        <header>
+            <div class="nn-brand">
+                <div class="nn-logo">NN</div>
+                <h1>Music Downloader</h1>
+            </div>
+            <p class="subtitle">Download your favorite music and videos</p>
+        </header>
+
+        <div class="card">
+            <div class="input-wrapper">
+                <i class="fas fa-link input-icon"></i>
+                <input type="text" 
+                       id="youtubeUrl" 
+                       placeholder="Paste YouTube link here..."
+                       autocomplete="off">
+            </div>
+
+            <div class="preview" id="videoPreview" style="display: none;">
+                <div class="preview-content">
+                    <img id="thumbnail" src="" alt="Video thumbnail">
+                    <div class="video-info">
+                        <h3 id="videoTitle"></h3>
+                        <p id="videoDuration"></p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button onclick="processVideo('mp4')" class="download-btn video-btn">
+                    <i class="fas fa-video"></i>
+                    <span>
+                        <strong>MP4</strong>
+                        <small>Download Video</small>
+                    </span>
+                </button>
+                <button onclick="processVideo('mp3')" class="download-btn audio-btn">
+                    <i class="fas fa-music"></i>
+                    <span>
+                        <strong>MP3</strong>
+                        <small>Download Audio</small>
+                    </span>
+                </button>
+            </div>
+
+            <div id="status" class="status">
+                <div class="progress-container">
+                    <div class="progress-bar" id="progressBar" style="display: none;">
+                        <div class="progress" id="progress"></div>
+                    </div>
+                    <p id="statusText"></p>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Created by <span class="nn-text">NN</span> with <i class="fas fa-heart"></i></p>
+        </footer>
+    </div>
+    <script src="/script.js"></script>
+</body>
+</html> 
