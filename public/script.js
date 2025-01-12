@@ -37,7 +37,6 @@ const UI = {
         preview: document.getElementById('videoPreview'),
         thumbnail: document.getElementById('thumbnail'),
         title: document.getElementById('videoTitle'),
-        author: document.getElementById('videoAuthor'),
         duration: document.getElementById('videoDuration'),
         videoFormats: document.getElementById('videoFormats'),
         audioFormats: document.getElementById('audioFormats'),
@@ -55,7 +54,6 @@ const UI = {
     updatePreview(data) {
         this.elements.thumbnail.src = data.thumbnail;
         this.elements.title.textContent = data.title;
-        this.elements.author.textContent = data.author;
         this.elements.duration.textContent = utils.formatDuration(data.duration);
         this.showPreview();
         this.displayFormats(data.formats);
@@ -76,10 +74,10 @@ const UI = {
                 </div>
                 <div class="format-type">
                     <i class="fas fa-video"></i>
-                    MP4
+                    ${format.ext.toUpperCase()}
                 </div>
             `;
-            div.onclick = () => this.startDownload(format.itag);
+            div.onclick = () => this.startDownload(format.id);
             this.elements.videoFormats.appendChild(div);
         });
 
@@ -94,20 +92,19 @@ const UI = {
                 </div>
                 <div class="format-type">
                     <i class="fas fa-music"></i>
-                    MP3
+                    ${format.ext.toUpperCase()}
                 </div>
             `;
-            div.onclick = () => this.startDownload(format.itag);
+            div.onclick = () => this.startDownload(format.id);
             this.elements.audioFormats.appendChild(div);
         });
     },
 
-    startDownload(itag) {
+    startDownload(formatId) {
         try {
             utils.showSuccess('Starting download...');
             const url = this.elements.urlInput.value;
-            const downloadUrl = `/download/${itag}?url=${encodeURIComponent(url)}`;
-            window.location.href = downloadUrl;
+            window.location.href = `/download?url=${encodeURIComponent(url)}&format=${formatId}`;
             setTimeout(() => utils.showSuccess('Download started!'), 1000);
         } catch (error) {
             console.error('Download error:', error);

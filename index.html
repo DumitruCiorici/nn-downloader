@@ -31,16 +31,13 @@
             </div>
 
             <div class="preview" id="videoPreview" style="display: none;">
-                <div class="preview-header">
-                    <div class="video-meta">
-                        <span class="video-author" id="videoAuthor"></span>
-                        <span class="video-duration" id="videoDuration"></span>
-                    </div>
-                </div>
                 <div class="preview-content">
                     <img id="thumbnail" src="" alt="Video thumbnail" loading="lazy">
                     <div class="video-info">
                         <h3 id="videoTitle"></h3>
+                        <div class="video-meta">
+                            <span id="videoDuration"></span>
+                        </div>
                         <div class="formats-container">
                             <div class="format-section">
                                 <div class="format-section-title">
@@ -66,12 +63,7 @@
             </div>
 
             <div id="status" class="status">
-                <div class="progress-container" style="display: none;">
-                    <div class="progress-bar" id="progressBar">
-                        <div class="progress" id="progress"></div>
-                    </div>
-                    <p id="statusText" aria-live="polite"></p>
-                </div>
+                <p id="statusText" aria-live="polite"></p>
             </div>
         </div>
 

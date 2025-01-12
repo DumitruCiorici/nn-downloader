@@ -9,7 +9,7 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "youtube-dl-exec": "^2.4.17",
+    "yt-dlp-exec": "^1.0.2",
     "express": "^4.17.1",
     "cors": "^2.8.5",
     "body-parser": "^1.19.0"

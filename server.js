@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const bodyParser = require('body-parser');
-const youtubedl = require('youtube-dl-exec');
+const ytdlp = require('yt-dlp-exec');
 
 const app = express();
 
@@ -10,85 +10,97 @@ app.use(bodyParser.json());
 app.use('/public', express.static(path.join(__dirname, 'public')));
 app.use(cors());
 
+// Endpoint pentru informații video
 app.post('/convert', async (req, res) => {
     try {
         const { url } = req.body;
-        console.log('Processing URL:', url);
-
+        
         if (!url) {
             return res.status(400).json({ error: 'Please enter a YouTube URL' });
         }
 
-        // Obținem informațiile video folosind youtube-dl
-        const info = await youtubedl(url, {
+        // Obținem informații despre video
+        const videoInfo = await ytdlp(url, {
             dumpSingleJson: true,
-            noWarnings: true,
-            noCallHome: true,
+            noCheckCertificates: true,
             preferFreeFormats: true,
-            youtubeSkipDashManifest: true
+            noWarnings: true,
+            noCallHome: true
         });
 
-        // Procesăm formatele disponibile
+        // Procesăm formatele
         const formats = {
             video: [],
             audio: []
         };
 
-        // Filtrăm și procesăm formatele
-        info.formats.forEach(format => {
-            const item = {
-                formatId: format.format_id,
-                quality: format.height ? `${format.height}p` : `${format.abr}kbps`,
-                size: format.filesize,
-                ext: format.ext,
-                url: format.url
-            };
+        // Filtrăm formatele
+        videoInfo.formats.forEach(format => {
+            if (format.filesize && format.format_id) {
+                const item = {
+                    id: format.format_id,
+                    ext: format.ext,
+                    quality: format.height ? `${format.height}p` : format.abr ? `${format.abr}kbps` : 'N/A',
+                    size: format.filesize,
+                    vcodec: format.vcodec,
+                    acodec: format.acodec
+                };
 
-            if (format.vcodec !== 'none' && format.acodec !== 'none') {
-                formats.video.push(item);
-            } else if (format.acodec !== 'none' && format.vcodec === 'none') {
-                formats.audio.push(item);
+                if (format.vcodec !== 'none' && format.acodec !== 'none') {
+                    formats.video.push(item);
+                } else if (format.acodec !== 'none') {
+                    formats.audio.push(item);
+                }
             }
         });
 
         res.json({
-            title: info.title,
-            thumbnail: info.thumbnail,
-            duration: info.duration,
-            author: info.uploader,
+            title: videoInfo.title,
+            thumbnail: videoInfo.thumbnail,
+            duration: videoInfo.duration,
             formats: formats
         });
 
     } catch (error) {
-        console.error('Convert error:', error);
-        res.status(500).json({ 
-            error: 'Could not process video',
-            details: error.message 
-        });
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Could not process video' });
     }
 });
 
-app.get('/download/:formatId', async (req, res) => {
+// Endpoint pentru descărcare
+app.get('/download', async (req, res) => {
     try {
-        const { url } = req.query;
-        const { formatId } = req.params;
+        const { url, format } = req.query;
 
-        if (!url || !formatId) {
-            return res.status(400).json({ error: 'Missing URL or format selection' });
+        if (!url || !format) {
+            return res.status(400).json({ error: 'Missing parameters' });
         }
 
-        // Obținem URL-ul direct de descărcare
-        const info = await youtubedl(url, {
-            dumpSingleJson: true,
-            format: formatId
+        // Descărcăm direct
+        const stream = ytdlp.raw(url, {
+            format: format,
+            output: '-'
         });
 
-        // Redirect către URL-ul de descărcare
-        res.redirect(info.url);
+        // Setăm headers pentru descărcare
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('Content-Disposition', 'attachment; filename="video.' + (format.includes('audio') ? 'mp3' : 'mp4') + '"');
+
+        // Pipe stream direct către response
+        stream.stdout.pipe(res);
+
+        stream.on('error', (error) => {
+            console.error('Stream error:', error);
+            if (!res.headersSent) {
+                res.status(500).json({ error: 'Download failed' });
+            }
+        });
 
     } catch (error) {
-        console.error('Download error:', error);
-        res.status(500).json({ error: 'Download failed' });
+        console.error('Error:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Download failed' });
+        }
     }
 });
 
