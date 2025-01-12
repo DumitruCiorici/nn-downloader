@@ -24,30 +24,27 @@ function getYoutubeID(url) {
 app.post('/convert', async (req, res) => {
     try {
         const { url } = req.body;
+        console.log('Received URL:', url);
         
         if (!url) {
             return res.status(400).json({ error: 'Please enter a YouTube URL' });
         }
 
-        // Verificăm dacă URL-ul este valid
         const videoID = getYoutubeID(url);
+        console.log('Extracted Video ID:', videoID);
+        
         if (!videoID) {
             return res.status(400).json({ error: 'Invalid YouTube URL' });
         }
 
-        console.log('Fetching video info for ID:', videoID); // Debug log
-
-        // Obținem informațiile video
         const info = await ytdl.getInfo(url);
-        console.log('Video info fetched successfully'); // Debug log
+        console.log('Video info fetched:', info.videoDetails.title);
 
-        // Procesăm formatele disponibile
         const formats = {
             video: [],
             audio: []
         };
 
-        // Filtrăm formatele
         info.formats.forEach(format => {
             if (format.hasVideo && format.hasAudio) {
                 formats.video.push({
@@ -66,7 +63,6 @@ app.post('/convert', async (req, res) => {
             }
         });
 
-        // Returnăm informațiile necesare
         res.json({
             title: info.videoDetails.title,
             thumbnail: info.videoDetails.thumbnails[0].url,
@@ -76,7 +72,7 @@ app.post('/convert', async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Error in /convert:', error); // Debug log
+        console.error('Error in /convert:', error);
         res.status(500).json({ 
             error: 'Could not process video',
             details: error.message 
@@ -88,33 +84,29 @@ app.post('/convert', async (req, res) => {
 app.post('/download', async (req, res) => {
     try {
         const { url, itag } = req.body;
+        console.log('Download requested:', { url, itag });
 
         if (!url || !itag) {
             return res.status(400).json({ error: 'Missing URL or format selection' });
         }
 
-        console.log('Starting download for itag:', itag); // Debug log
-
         const stream = ytdl(url, {
             quality: itag
         });
 
-        // Setăm headers pentru descărcare
         res.header('Content-Disposition', 'attachment;');
         stream.pipe(res);
 
     } catch (error) {
-        console.error('Error in /download:', error); // Debug log
+        console.error('Error in /download:', error);
         res.status(500).json({ error: 'Download failed' });
     }
 });
 
-// Servim index.html
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Pornim serverul
 const PORT = process.env.PORT || 3005;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
