@@ -5,6 +5,10 @@ const bodyParser = require('body-parser');
 
 const app = express();
 
+// Servim fișierele statice ÎNAINTE de alte middleware
+app.use(express.static(path.join(__dirname)));
+
+// Apoi celelalte middleware
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST'],
@@ -12,7 +16,6 @@ app.use(cors({
     optionsSuccessStatus: 200
 }));
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname)));
 
 // Endpoint pentru informații video
 app.post('/convert', async (req, res) => {
@@ -61,6 +64,14 @@ app.post('/download', async (req, res) => {
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/style.css', (req, res) => {
+    res.sendFile(path.join(__dirname, 'style.css'));
+});
+
+app.get('/script.js', (req, res) => {
+    res.sendFile(path.join(__dirname, 'script.js'));
 });
 
 const PORT = process.env.PORT || 3005;
