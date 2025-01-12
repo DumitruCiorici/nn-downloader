@@ -5,8 +5,8 @@ const bodyParser = require('body-parser');
 
 const app = express();
 
-// Servim fișierele statice ÎNAINTE de alte middleware
-app.use(express.static(path.join(__dirname)));
+// Servim fișierele statice din directorul public
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Apoi celelalte middleware
 app.use(cors({
@@ -67,11 +67,11 @@ app.get('/', (req, res) => {
 });
 
 app.get('/style.css', (req, res) => {
-    res.sendFile(path.join(__dirname, 'style.css'));
+    res.sendFile(path.join(__dirname, 'public', 'style.css'));
 });
 
 app.get('/script.js', (req, res) => {
-    res.sendFile(path.join(__dirname, 'script.js'));
+    res.sendFile(path.join(__dirname, 'public', 'script.js'));
 });
 
 const PORT = process.env.PORT || 3005;
