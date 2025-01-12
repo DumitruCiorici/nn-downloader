@@ -55,14 +55,14 @@ async function processVideo(format) {
 
         // Afișare progress bar
         progressBar.style.display = 'block';
-        statusText.textContent = 'Starting download...';
-        progress.style.width = '20%';
+        statusText.textContent = 'Processing video...';
+        progress.style.width = '50%';
 
         setButtonLoading(format === 'mp4' ? 'video' : 'audio', true);
 
         const API_URL = window.location.origin;
         
-        // Facem request direct pentru descărcare
+        // Facem request pentru descărcare
         const response = await fetch(`${API_URL}/download`, {
             method: 'POST',
             headers: {
@@ -75,26 +75,13 @@ async function processVideo(format) {
             throw new Error('Download failed');
         }
 
-        // Primim blob-ul și îl descărcăm
-        const blob = await response.blob();
-        const downloadUrl = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
+        const { downloadUrl } = await response.json();
         
-        // Setăm numele fișierului din header-ul Content-Disposition dacă există
-        const contentDisposition = response.headers.get('Content-Disposition');
-        const fileName = contentDisposition
-            ? contentDisposition.split('filename=')[1].replace(/"/g, '')
-            : `download.${format}`;
-
-        a.href = downloadUrl;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(downloadUrl);
+        // Deschidem URL-ul de descărcare într-o fereastră nouă
+        window.open(downloadUrl, '_blank');
 
         progress.style.width = '100%';
-        statusText.textContent = 'Download complete!';
+        statusText.textContent = 'Download started! Check your downloads.';
 
     } catch (error) {
         console.error('Error:', error);
