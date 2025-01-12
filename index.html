@@ -9,9 +9,6 @@
     <link rel="stylesheet" href="/public/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-    <script>
-        document.documentElement.classList.add('loading');
-    </script>
 </head>
 <body>
     <div class="container">
@@ -36,46 +33,41 @@
             <div class="preview" id="videoPreview" style="display: none;">
                 <div class="preview-header">
                     <div class="video-meta">
-                        <span id="videoAuthor"></span>
-                        <span id="videoDuration"></span>
+                        <span class="video-author" id="videoAuthor"></span>
+                        <span class="video-duration" id="videoDuration"></span>
                     </div>
                 </div>
                 <div class="preview-content">
                     <img id="thumbnail" src="" alt="Video thumbnail" loading="lazy">
                     <div class="video-info">
                         <h3 id="videoTitle"></h3>
-                        <div class="download-options">
-                            <div class="download-header">
-                                <span class="download-title">Available Formats</span>
+                        <div class="formats-container">
+                            <div class="format-section">
+                                <div class="format-section-title">
+                                    <i class="fas fa-video"></i>
+                                    Video Formats
+                                </div>
+                                <div class="format-list" id="videoFormats">
+                                    <!-- Video formats will be added here -->
+                                </div>
                             </div>
-                            <div class="format-list" id="formatList">
-                                <!-- Formatele vor fi adăugate dinamic -->
+                            <div class="format-section">
+                                <div class="format-section-title">
+                                    <i class="fas fa-music"></i>
+                                    Audio Formats
+                                </div>
+                                <div class="format-list" id="audioFormats">
+                                    <!-- Audio formats will be added here -->
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="button-group" id="formatButtons">
-                <button onclick="processVideo('mp4')" class="download-btn video-btn">
-                    <i class="fas fa-video"></i>
-                    <span>
-                        <strong>MP4</strong>
-                        <small>Download Video</small>
-                    </span>
-                </button>
-                <button onclick="processVideo('mp3')" class="download-btn audio-btn">
-                    <i class="fas fa-music"></i>
-                    <span>
-                        <strong>MP3</strong>
-                        <small>Download Audio</small>
-                    </span>
-                </button>
-            </div>
-
             <div id="status" class="status">
-                <div class="progress-container">
-                    <div class="progress-bar" id="progressBar" style="display: none;" role="progressbar" aria-valuemin="0" aria-valuemax="100">
+                <div class="progress-container" style="display: none;">
+                    <div class="progress-bar" id="progressBar">
                         <div class="progress" id="progress"></div>
                     </div>
                     <p id="statusText" aria-live="polite"></p>
@@ -88,12 +80,6 @@
         </footer>
     </div>
 
-    <script>
-        window.addEventListener('load', () => {
-            document.documentElement.classList.remove('loading');
-            document.documentElement.classList.add('loaded');
-        });
-    </script>
     <script src="/public/script.js"></script>
 </body>
 </html> 
