@@ -2,8 +2,8 @@ let currentVideoId = null;
 
 // Funcție pentru validarea URL-ului
 function isValidYouTubeUrl(url) {
-    const pattern = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[a-zA-Z0-9_-]{11}$/;
-    return pattern.test(url);
+    // Acceptăm orice URL care conține youtube.com sau youtu.be
+    return url.includes('youtube.com') || url.includes('youtu.be');
 }
 
 // Actualizăm event listener-ul pentru input
@@ -52,12 +52,15 @@ async function processVideo(format) {
     const statusText = document.getElementById('statusText');
     const progressBar = document.getElementById('progressBar');
     const progress = document.getElementById('progress');
+    const button = event.currentTarget; // Butonul care a fost apăsat
     const url = urlInput.value.trim();
 
     // Resetare UI
     statusText.textContent = '';
-    progressBar.style.display = 'none';
+    statusText.classList.remove('error', 'success');
+    progressBar.classList.remove('active');
     progress.style.width = '0%';
+    button.classList.remove('loading');
 
     try {
         if (!url) {
@@ -65,11 +68,12 @@ async function processVideo(format) {
         }
 
         if (!isValidYouTubeUrl(url)) {
-            throw new Error('Invalid YouTube URL format');
+            throw new Error('Please enter a valid YouTube URL');
         }
 
-        // Afișare progress bar
-        progressBar.style.display = 'block';
+        // Afișare loading state
+        button.classList.add('loading');
+        progressBar.classList.add('active');
         statusText.textContent = 'Starting download...';
         progress.style.width = '20%';
 
@@ -86,6 +90,9 @@ async function processVideo(format) {
             throw new Error(error.error || 'Download failed');
         }
 
+        progress.style.width = '60%';
+        statusText.textContent = 'Processing download...';
+
         const blob = await response.blob();
         const downloadUrl = window.URL.createObjectURL(blob);
         
@@ -99,10 +106,15 @@ async function processVideo(format) {
 
         progress.style.width = '100%';
         statusText.textContent = 'Download complete!';
+        statusText.classList.add('success');
 
     } catch (error) {
         console.error('Download error:', error);
         statusText.textContent = error.message;
-        progressBar.style.display = 'none';
+        statusText.classList.add('error');
+        progress.style.width = '0%';
+        progressBar.classList.remove('active');
+    } finally {
+        button.classList.remove('loading');
     }
 } 

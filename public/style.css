@@ -247,6 +247,12 @@ input:focus {
     overflow: hidden;
     margin: 1rem 0;
     height: 6px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.progress-bar.active {
+    opacity: 1;
 }
 
 .progress {
@@ -259,6 +265,7 @@ input:focus {
     background-size: 200% 100%;
     animation: gradient 2s linear infinite;
     height: 100%;
+    width: 0;
     transition: width 0.3s ease;
 }
 
@@ -268,6 +275,17 @@ input:focus {
     font-size: 0.9rem;
     min-height: 20px;
     margin-top: 0.5rem;
+    transition: color 0.3s ease;
+}
+
+#statusText.error {
+    color: #ff4444;
+    font-weight: 500;
+}
+
+#statusText.success {
+    color: #00ff00;
+    font-weight: 500;
 }
 
 footer {
@@ -397,6 +415,16 @@ footer i {
     border-top-color: transparent;
     border-radius: 50%;
     animation: spinner 0.6s linear infinite;
+}
+
+.download-btn.loading {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.download-btn.loading:hover {
+    transform: none;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 @keyframes spinner {

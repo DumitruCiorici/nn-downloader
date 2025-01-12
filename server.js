@@ -25,12 +25,14 @@ app.post('/convert', async (req, res) => {
     console.log(`[${timestamp}] Convert request for URL: ${url}`);
     
     try {
-        if (!ytdl.validateURL(url)) {
-            console.log(`[${timestamp}] Invalid URL: ${url}`);
-            return res.status(400).json({ error: 'Invalid YouTube URL' });
+        let videoId;
+        try {
+            videoId = ytdl.getVideoID(url);
+        } catch (error) {
+            console.log(`[${timestamp}] Could not extract video ID from URL: ${url}`);
+            return res.status(400).json({ error: 'Could not process YouTube URL' });
         }
 
-        const videoId = ytdl.getVideoID(url);
         console.log(`[${timestamp}] Video ID: ${videoId}`);
         
         const info = await ytdl.getBasicInfo(videoId);
@@ -53,12 +55,14 @@ app.post('/download', async (req, res) => {
     console.log(`[${timestamp}] Download request - URL: ${url}, Format: ${format}`);
     
     try {
-        if (!ytdl.validateURL(url)) {
-            console.log(`[${timestamp}] Invalid URL: ${url}`);
-            return res.status(400).json({ error: 'Invalid YouTube URL' });
+        let videoId;
+        try {
+            videoId = ytdl.getVideoID(url);
+        } catch (error) {
+            console.log(`[${timestamp}] Could not extract video ID from URL: ${url}`);
+            return res.status(400).json({ error: 'Could not process YouTube URL' });
         }
 
-        const videoId = ytdl.getVideoID(url);
         console.log(`[${timestamp}] Video ID: ${videoId}`);
         
         const info = await ytdl.getBasicInfo(videoId);
