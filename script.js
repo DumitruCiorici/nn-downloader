@@ -1,14 +1,17 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Simulăm un timp minim de încărcare pentru o experiență mai plăcută
-    setTimeout(() => {
-        const initialLoading = document.getElementById('initialLoading');
-        initialLoading.classList.add('fade-out');
-        
-        // Eliminăm elementul după ce animația s-a terminat
+    try {
         setTimeout(() => {
-            initialLoading.remove();
-        }, 500);
-    }, 1500); // Loading screen va fi vizibil pentru 1.5 secunde
+            const initialLoading = document.getElementById('initialLoading');
+            if (initialLoading) {
+                initialLoading.classList.add('fade-out');
+                setTimeout(() => {
+                    initialLoading.remove();
+                }, 500);
+            }
+        }, 1500);
+    } catch (error) {
+        console.error('Loading error:', error);
+    }
 });
 
 let currentVideoId = null;

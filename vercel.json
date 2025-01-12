@@ -4,24 +4,20 @@
         {
             "src": "server.js",
             "use": "@vercel/node"
-        },
-        {
-            "src": "*.html",
-            "use": "@vercel/static"
         }
     ],
     "routes": [
         {
-            "src": "/convert",
-            "dest": "server.js"
+            "src": "/style.css",
+            "dest": "/style.css"
         },
         {
-            "src": "/download",
-            "dest": "server.js"
+            "src": "/script.js",
+            "dest": "/script.js"
         },
         {
             "src": "/(.*)",
-            "dest": "/"
+            "dest": "/server.js"
         }
     ]
 } 

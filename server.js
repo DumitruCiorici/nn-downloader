@@ -138,7 +138,7 @@ app.post('/download', async (req, res) => {
 });
 
 // Adăugăm servirea fișierelor statice
-app.use(express.static(path.join(__dirname, '/')));
+app.use(express.static(path.join(__dirname)));
 
 // Adăugăm o rută pentru pagina principală
 app.get('/', (req, res) => {
