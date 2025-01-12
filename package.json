@@ -9,7 +9,7 @@
     "start": "node server.js"
   },
   "dependencies": {
-    "ytdl-core": "git+https://github.com/khlevon/node-ytdl-core.git#v4.11.4-patch.2",
+    "youtube-dl-exec": "^2.4.17",
     "express": "^4.17.1",
     "cors": "^2.8.5",
     "body-parser": "^1.19.0"
