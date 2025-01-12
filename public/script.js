@@ -7,18 +7,29 @@ function formatDuration(seconds) {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
-// Actualizăm event listener-ul pentru input
+// Funcție pentru validarea URL-ului
+function isValidYouTubeUrl(url) {
+    return url.includes('youtube.com/watch?v=') || 
+           url.includes('youtu.be/') ||
+           url.includes('youtube.com/v/');
+}
+
+// Event listener pentru input
 document.getElementById('youtubeUrl').addEventListener('input', async function(e) {
     const url = e.target.value.trim();
     const previewDiv = document.getElementById('videoPreview');
+    const statusText = document.getElementById('statusText');
     
-    if (!url) {
-        previewDiv.style.display = 'none';
-        return;
-    }
+    // Reset UI
+    previewDiv.style.display = 'none';
+    statusText.textContent = '';
+    statusText.classList.remove('error');
 
-    if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
-        previewDiv.style.display = 'none';
+    if (!url) return;
+
+    if (!isValidYouTubeUrl(url)) {
+        statusText.textContent = 'Please enter a valid YouTube URL';
+        statusText.classList.add('error');
         return;
     }
 
@@ -37,6 +48,7 @@ document.getElementById('youtubeUrl').addEventListener('input', async function(e
 
         const data = await response.json();
         
+        // Actualizare UI
         document.getElementById('thumbnail').src = data.thumbnail;
         document.getElementById('videoTitle').textContent = data.title;
         document.getElementById('videoAuthor').textContent = `by ${data.author}`;
@@ -45,7 +57,8 @@ document.getElementById('youtubeUrl').addEventListener('input', async function(e
         
     } catch (error) {
         console.error('Preview error:', error);
-        previewDiv.style.display = 'none';
+        statusText.textContent = 'Could not load video information';
+        statusText.classList.add('error');
     }
 });
 
@@ -58,7 +71,7 @@ async function processVideo(format) {
     const button = event.currentTarget;
     const url = urlInput.value.trim();
 
-    // Resetare UI
+    // Reset UI
     statusText.textContent = '';
     statusText.classList.remove('error', 'success');
     progressBar.classList.remove('active');
@@ -70,7 +83,11 @@ async function processVideo(format) {
             throw new Error('Please enter a YouTube URL');
         }
 
-        // Afișare loading state
+        if (!isValidYouTubeUrl(url)) {
+            throw new Error('Please enter a valid YouTube URL');
+        }
+
+        // Start download
         button.classList.add('loading');
         progressBar.classList.add('active');
         statusText.textContent = 'Starting download...';
@@ -95,6 +112,7 @@ async function processVideo(format) {
         const blob = await response.blob();
         progress.style.width = '80%';
         
+        // Inițiere descărcare
         const downloadUrl = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = downloadUrl;
@@ -104,6 +122,7 @@ async function processVideo(format) {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(downloadUrl);
 
+        // Succes
         progress.style.width = '100%';
         statusText.textContent = 'Download complete!';
         statusText.classList.add('success');
