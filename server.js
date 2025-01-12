@@ -6,27 +6,37 @@ const ytdl = require('ytdl-core');
 
 const app = express();
 
+// Mărim limita pentru request-uri
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(cors());
-app.use(bodyParser.json());
 
-// Endpoint pentru informații video
+// Funcție pentru validarea URL-ului
+function isValidYouTubeUrl(url) {
+    return ytdl.validateURL(url);
+}
+
+// Endpoint pentru preview
 app.post('/convert', async (req, res) => {
     const { url } = req.body;
     
-    if (!url) {
-        return res.status(400).json({ error: 'URL is missing' });
+    if (!url || !isValidYouTubeUrl(url)) {
+        return res.status(400).json({ error: 'Invalid YouTube URL' });
     }
 
     try {
-        const info = await ytdl.getBasicInfo(url);
-        res.json({
+        const info = await ytdl.getInfo(url);
+        const videoDetails = {
             title: info.videoDetails.title,
-            thumbnail: info.videoDetails.thumbnails[0].url
-        });
+            thumbnail: info.videoDetails.thumbnails[info.videoDetails.thumbnails.length - 1].url,
+            duration: info.videoDetails.lengthSeconds
+        };
+        
+        res.json(videoDetails);
     } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ error: 'Error processing video' });
+        console.error('Preview error:', error);
+        res.status(500).json({ error: 'Could not fetch video info' });
     }
 });
 
@@ -34,56 +44,52 @@ app.post('/convert', async (req, res) => {
 app.post('/download', async (req, res) => {
     const { url, format } = req.body;
     
+    if (!url || !isValidYouTubeUrl(url)) {
+        return res.status(400).json({ error: 'Invalid YouTube URL' });
+    }
+
     try {
-        const info = await ytdl.getBasicInfo(url);
+        const info = await ytdl.getInfo(url);
         const videoTitle = info.videoDetails.title.replace(/[^\w\s]/gi, '');
 
-        // Configurare pentru descărcare
-        const options = {
-            requestOptions: {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                }
-            }
-        };
-
         if (format === 'mp3') {
-            options.quality = 'highestaudio';
-            options.filter = 'audioonly';
+            const audioFormat = ytdl.chooseFormat(info.formats, { 
+                quality: 'highestaudio',
+                filter: 'audioonly' 
+            });
+            
             res.setHeader('Content-Type', 'audio/mpeg');
             res.setHeader('Content-Disposition', `attachment; filename="${videoTitle}.mp3"`);
+            
+            ytdl(url, {
+                format: audioFormat,
+                requestOptions: {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                    }
+                }
+            }).pipe(res);
         } else {
-            options.quality = 'highestvideo';
-            options.filter = 'audioandvideo';
+            const videoFormat = ytdl.chooseFormat(info.formats, { 
+                quality: 'highest',
+                filter: 'audioandvideo'
+            });
+            
             res.setHeader('Content-Type', 'video/mp4');
             res.setHeader('Content-Disposition', `attachment; filename="${videoTitle}.mp4"`);
+            
+            ytdl(url, {
+                format: videoFormat,
+                requestOptions: {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                    }
+                }
+            }).pipe(res);
         }
-
-        // Inițiem descărcarea
-        const stream = ytdl(url, options);
-
-        // Gestionăm erorile de stream
-        stream.on('error', (error) => {
-            console.error('Stream error:', error);
-            if (!res.headersSent) {
-                res.status(500).json({ error: 'Download failed' });
-            }
-        });
-
-        // Gestionăm progresul
-        let downloadedBytes = 0;
-        stream.on('data', (chunk) => {
-            downloadedBytes += chunk.length;
-        });
-
-        // Trimitem stream-ul către client
-        stream.pipe(res);
-
     } catch (error) {
         console.error('Download error:', error);
-        if (!res.headersSent) {
-            res.status(500).json({ error: 'Download failed' });
-        }
+        res.status(500).json({ error: 'Download failed' });
     }
 });
 
