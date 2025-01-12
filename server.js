@@ -6,32 +6,14 @@ const ytdl = require('ytdl-core');
 
 const app = express();
 
-// Mărim limita pentru request-uri
 app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ extended: true, limit: '50mb' }));
 app.use('/public', express.static(path.join(__dirname, 'public')));
-app.use(cors({
-    origin: '*',
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type', 'Authorization']
-}));
+app.use(cors());
 
-// Funcție pentru a extrage ID-ul video din URL
-function extractVideoId(url) {
-    try {
-        if (url.includes('youtu.be/')) {
-            return url.split('youtu.be/')[1].split('?')[0];
-        }
-        if (url.includes('youtube.com/watch?v=')) {
-            return url.split('v=')[1].split('&')[0];
-        }
-        return null;
-    } catch (error) {
-        return null;
-    }
-}
+// Cache pentru informații video
+const videoCache = new Map();
 
-// Endpoint pentru preview
+// Endpoint pentru preview și informații
 app.post('/convert', async (req, res) => {
     try {
         const { url } = req.body;
@@ -39,30 +21,39 @@ app.post('/convert', async (req, res) => {
             return res.status(400).json({ error: 'URL is required' });
         }
 
-        const videoId = extractVideoId(url);
-        if (!videoId) {
-            return res.status(400).json({ error: 'Invalid YouTube URL' });
-        }
-
-        const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-        
-        const info = await ytdl.getBasicInfo(videoUrl, {
+        const info = await ytdl.getInfo(url, {
             requestOptions: {
                 headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.5',
-                    'Connection': 'keep-alive'
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
                 }
             }
         });
 
-        // Returnăm doar informațiile necesare
+        // Procesăm formatele disponibile
+        const formats = info.formats.map(format => ({
+            itag: format.itag,
+            quality: format.qualityLabel || format.audioBitrate + 'kbps',
+            mimeType: format.mimeType,
+            contentLength: format.contentLength,
+            hasAudio: format.hasAudio,
+            hasVideo: format.hasVideo,
+            url: format.url
+        }));
+
+        // Salvăm în cache
+        const cacheKey = info.videoDetails.videoId;
+        videoCache.set(cacheKey, {
+            formats,
+            title: info.videoDetails.title
+        });
+
         res.json({
+            videoId: cacheKey,
             title: info.videoDetails.title,
             thumbnail: info.videoDetails.thumbnails[0].url,
             duration: info.videoDetails.lengthSeconds,
-            author: info.videoDetails.author.name
+            author: info.videoDetails.author.name,
+            formats: formats.filter(f => f.hasAudio) // Trimitem doar formatele cu audio
         });
     } catch (error) {
         console.error('Convert error:', error);
@@ -70,51 +61,23 @@ app.post('/convert', async (req, res) => {
     }
 });
 
-// Endpoint pentru descărcare
-app.post('/download', async (req, res) => {
+// Endpoint pentru descărcare directă
+app.get('/download/:videoId/:itag', async (req, res) => {
     try {
-        const { url, format } = req.body;
-        if (!url) {
-            return res.status(400).json({ error: 'URL is required' });
+        const { videoId, itag } = req.params;
+        const cachedData = videoCache.get(videoId);
+
+        if (!cachedData) {
+            return res.status(404).json({ error: 'Video info not found. Please try again.' });
         }
 
-        const videoId = extractVideoId(url);
-        if (!videoId) {
-            return res.status(400).json({ error: 'Invalid YouTube URL' });
+        const format = cachedData.formats.find(f => f.itag === parseInt(itag));
+        if (!format) {
+            return res.status(404).json({ error: 'Format not found' });
         }
 
-        const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
-        const info = await ytdl.getBasicInfo(videoUrl, {
-            requestOptions: {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                }
-            }
-        });
-
-        const title = info.videoDetails.title.replace(/[^\w\s]/gi, '');
-        const options = {
-            requestOptions: {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-                }
-            }
-        };
-
-        if (format === 'mp3') {
-            options.quality = 'highestaudio';
-            options.filter = 'audioonly';
-            res.header('Content-Type', 'audio/mpeg');
-            res.header('Content-Disposition', `attachment; filename="${title}.mp3"`);
-        } else {
-            options.quality = 'highest';
-            options.filter = 'audioandvideo';
-            res.header('Content-Type', 'video/mp4');
-            res.header('Content-Disposition', `attachment; filename="${title}.mp4"`);
-        }
-
-        const stream = ytdl(videoUrl, options);
-        stream.pipe(res);
+        // Redirect către URL-ul direct
+        res.redirect(format.url);
 
     } catch (error) {
         console.error('Download error:', error);
@@ -122,12 +85,10 @@ app.post('/download', async (req, res) => {
     }
 });
 
-// Rută pentru index.html
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// Rută pentru favicon
 app.get('/favicon.ico', (req, res) => {
     res.status(204).end();
 });
