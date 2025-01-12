@@ -7,15 +7,12 @@
     <link rel="stylesheet" href="/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700&family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+        // Adăugăm acest script pentru a preveni flash of unstyled content
+        document.documentElement.classList.add('loading');
+    </script>
 </head>
 <body>
-    <div class="initial-loading" id="initialLoading">
-        <div class="loader">
-            <div class="nn-logo">NN</div>
-            <p class="loading-text">Loading...</p>
-        </div>
-    </div>
-    
     <div class="container">
         <header>
             <div class="nn-brand">
@@ -77,17 +74,10 @@
     </div>
 
     <script>
+        // Eliminăm loading class după ce totul s-a încărcat
         window.addEventListener('load', () => {
-            const initialLoading = document.getElementById('initialLoading');
-            if (initialLoading) {
-                setTimeout(() => {
-                    initialLoading.classList.add('fade-out');
-                    document.body.classList.add('loaded');
-                    setTimeout(() => {
-                        initialLoading.remove();
-                    }, 500);
-                }, 1000);
-            }
+            document.documentElement.classList.remove('loading');
+            document.documentElement.classList.add('loaded');
         });
     </script>
     <script src="/script.js"></script>

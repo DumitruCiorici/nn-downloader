@@ -27,61 +27,27 @@ body {
     overflow-x: hidden;
 }
 
-.wave-container {
-    position: fixed;
-    width: 100%;
-    height: 100vh;
-    top: 0;
-    left: 0;
-    z-index: -1;
-    overflow: hidden;
+html {
+    background: var(--bg-color);
 }
 
-.wave {
-    position: absolute;
-    width: 200%;
-    height: 200%;
-    background: linear-gradient(45deg, 
-        var(--gradient-start), 
-        var(--accent-color),
-        var(--gradient-end)
-    );
-    opacity: 0.1;
-    filter: blur(5px);
-    border-radius: 40%;
-    transform-origin: 50% 48%;
-    animation: wave 25s infinite cubic-bezier(0.55, 0.5, 0.45, 0.5);
+html.loading {
+    background: var(--bg-color);
 }
 
-.wave:nth-child(2) {
-    opacity: 0.3;
-    animation: wave 30s infinite linear;
-    animation-duration: 30s;
-    animation-delay: -5s;
+html.loading .container {
+    opacity: 0;
 }
 
-.wave:nth-child(3) {
-    opacity: 0.1;
-    animation: wave 35s infinite linear;
-    animation-duration: 35s;
-    animation-delay: -2s;
-}
-
-@keyframes wave {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
+html.loaded .container {
+    opacity: 1;
+    transition: opacity 0.5s ease;
 }
 
 .container {
     max-width: 800px;
     margin: 2rem auto;
     padding: 0 20px;
-    opacity: 0;
-    transition: opacity 0.5s ease;
-}
-
-body.loaded .container {
-    opacity: 1;
 }
 
 header {
@@ -387,114 +353,12 @@ input:focus::placeholder {
     }
 }
 
-.loading-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.85);
-    display: none;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    backdrop-filter: blur(5px);
-}
-
-.loading-screen.active {
-    display: flex;
-}
-
-.loader {
-    text-align: center;
-}
-
-.loading-text {
-    color: white;
-    margin-top: 1rem;
-    font-size: 1.2rem;
-    letter-spacing: 1px;
-}
-
-.circular {
-    animation: rotate 2s linear infinite;
-    height: 50px;
-    width: 50px;
-    position: relative;
-}
-
-.path {
-    stroke: var(--accent-color);
-    stroke-linecap: round;
-    animation: dash 1.5s ease-in-out infinite;
-}
-
-@keyframes rotate {
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
-@keyframes dash {
-    0% {
-        stroke-dasharray: 1, 150;
-        stroke-dashoffset: 0;
-    }
-    50% {
-        stroke-dasharray: 90, 150;
-        stroke-dashoffset: -35;
-    }
-    100% {
-        stroke-dasharray: 90, 150;
-        stroke-dashoffset: -124;
-    }
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes fadeOut {
-    from { opacity: 1; }
-    to { opacity: 0; }
-}
-
-.loading-screen.active {
-    display: flex;
-    animation: fadeIn 0.3s ease forwards;
-}
-
-.loading-screen.fade-out {
-    animation: fadeOut 0.3s ease forwards;
-}
-
-.initial-loading {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: var(--bg-color);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 2000;
-    transition: opacity 0.5s ease, visibility 0.5s ease;
-}
-
-.initial-loading.fade-out {
-    opacity: 0;
-    visibility: hidden;
-}
-
 .nn-logo {
     font-family: 'Orbitron', sans-serif;
     font-size: 3rem;
     font-weight: 700;
     color: var(--accent-color);
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
-    letter-spacing: -2px;
     animation: glowWhite 2s ease-in-out infinite alternate;
 }
 
