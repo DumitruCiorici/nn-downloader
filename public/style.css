@@ -1,7 +1,101 @@
-/* Stiluri pentru preview */
+/* Variables */
+:root {
+    --primary-color: #000000;
+    --secondary-color: #333333;
+    --accent-color: #ffffff;
+    --text-color: #ffffff;
+    --bg-color: #0a0a0a;
+    --card-bg: #1a1a1a;
+}
+
+/* Base Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background: var(--bg-color);
+    color: var(--text-color);
+    min-height: 100vh;
+    padding: 2rem;
+}
+
+/* Layout */
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Header Styles */
+header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.nn-brand {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.nn-logo {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--accent-color);
+}
+
+h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+}
+
+/* Input Styles */
+.input-wrapper {
+    position: relative;
+    margin-bottom: 2rem;
+}
+
+.input-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #666;
+}
+
+input {
+    width: 100%;
+    padding: 1rem 1rem 1rem 3rem;
+    border: 2px solid var(--secondary-color);
+    border-radius: 12px;
+    font-size: 1rem;
+    background: var(--bg-color);
+    color: var(--text-color);
+    transition: all 0.3s ease;
+}
+
+input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.1);
+}
+
+/* Preview Styles */
 .preview {
     display: none;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     padding: 1.5rem;
     margin-top: 1rem;
@@ -21,6 +115,7 @@
     height: 112px;
     object-fit: cover;
     border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .video-info {
@@ -30,9 +125,10 @@
 .video-info h3 {
     margin-bottom: 1rem;
     color: var(--accent-color);
+    font-size: 1.2rem;
 }
 
-/* Stiluri pentru formate */
+/* Format Styles */
 .format-list {
     display: grid;
     gap: 0.75rem;
@@ -56,7 +152,36 @@
     transform: translateY(-1px);
 }
 
-/* Status și erori */
+.format-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.format-quality {
+    font-weight: 500;
+    color: var(--accent-color);
+}
+
+.format-size {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+}
+
+/* Footer Styles */
+footer {
+    text-align: center;
+    margin-top: 3rem;
+    padding: 1rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+footer .nn-text {
+    color: var(--accent-color);
+    font-weight: 500;
+}
+
+/* Status Styles */
 .status {
     margin-top: 1rem;
 }
@@ -69,4 +194,26 @@
 .success {
     color: #00ff00;
     font-size: 0.9rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    body {
+        padding: 1rem;
+    }
+
+    .preview-content {
+        flex-direction: column;
+    }
+
+    .preview img {
+        width: 100%;
+        height: auto;
+    }
+
+    .format-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
 } 

@@ -9,7 +9,7 @@ const utils = {
     formatFileSize(bytes) {
         if (!bytes) return 'Unknown size';
         const units = ['B', 'KB', 'MB', 'GB'];
-        let size = bytes;
+        let size = parseInt(bytes);
         let unitIndex = 0;
         while (size >= 1024 && unitIndex < units.length - 1) {
             size /= 1024;
@@ -21,37 +21,50 @@ const utils = {
     showError(message) {
         const statusText = document.getElementById('statusText');
         statusText.textContent = message;
-        statusText.classList.add('error');
+        statusText.className = 'error';
     },
 
     showSuccess(message) {
         const statusText = document.getElementById('statusText');
         statusText.textContent = message;
-        statusText.classList.add('success');
-    },
-
-    resetStatus() {
-        const statusText = document.getElementById('statusText');
-        const progressContainer = document.querySelector('.progress-container');
-        const progressBar = document.getElementById('progressBar');
-        const progress = document.getElementById('progress');
-
-        statusText.textContent = '';
-        statusText.classList.remove('error', 'success');
-        progressContainer.style.display = 'none';
-        progress.style.width = '0%';
-        progressBar.classList.remove('active');
+        statusText.className = 'success';
     }
 };
 
-// Gestionarea UI
+// UI Controller
 const UI = {
+    elements: {
+        preview: document.getElementById('videoPreview'),
+        thumbnail: document.getElementById('thumbnail'),
+        title: document.getElementById('videoTitle'),
+        author: document.getElementById('videoAuthor'),
+        duration: document.getElementById('videoDuration'),
+        videoFormats: document.getElementById('videoFormats'),
+        audioFormats: document.getElementById('audioFormats'),
+        urlInput: document.getElementById('youtubeUrl')
+    },
+
+    showPreview() {
+        this.elements.preview.style.display = 'block';
+    },
+
+    hidePreview() {
+        this.elements.preview.style.display = 'none';
+    },
+
+    updatePreview(data) {
+        this.elements.thumbnail.src = data.thumbnail;
+        this.elements.title.textContent = data.title;
+        this.elements.author.textContent = data.author;
+        this.elements.duration.textContent = utils.formatDuration(data.duration);
+        this.showPreview();
+        this.displayFormats(data.formats);
+    },
+
     displayFormats(formats) {
-        const videoFormats = document.getElementById('videoFormats');
-        const audioFormats = document.getElementById('audioFormats');
-        
-        videoFormats.innerHTML = '';
-        audioFormats.innerHTML = '';
+        // Curățăm formatele existente
+        this.elements.videoFormats.innerHTML = '';
+        this.elements.audioFormats.innerHTML = '';
 
         // Adăugăm formate video
         formats.video.forEach(format => {
@@ -68,7 +81,7 @@ const UI = {
                 </div>
             `;
             div.onclick = () => this.startDownload(format.itag);
-            videoFormats.appendChild(div);
+            this.elements.videoFormats.appendChild(div);
         });
 
         // Adăugăm formate audio
@@ -86,42 +99,36 @@ const UI = {
                 </div>
             `;
             div.onclick = () => this.startDownload(format.itag);
-            audioFormats.appendChild(div);
+            this.elements.audioFormats.appendChild(div);
         });
-    },
-
-    updatePreview(data) {
-        const preview = document.getElementById('videoPreview');
-        document.getElementById('thumbnail').src = data.thumbnail;
-        document.getElementById('videoTitle').textContent = data.title;
-        document.getElementById('videoAuthor').textContent = data.author;
-        document.getElementById('videoDuration').textContent = utils.formatDuration(data.duration);
-        preview.style.display = 'block';
-        this.displayFormats(data.formats);
     },
 
     async startDownload(itag) {
         try {
-            const progressContainer = document.querySelector('.progress-container');
-            const progressBar = document.getElementById('progressBar');
-            const progress = document.getElementById('progress');
-
-            progressContainer.style.display = 'block';
-            progressBar.classList.add('active');
-            progress.style.width = '50%';
             utils.showSuccess('Starting download...');
-
-            const videoId = this.currentVideoId;
-            if (!videoId) throw new Error('Video info not found');
-
-            window.location.href = `/download/${videoId}/${itag}`;
+            const url = this.elements.urlInput.value;
             
-            setTimeout(() => {
-                progress.style.width = '100%';
-                utils.showSuccess('Download started!');
-                setTimeout(() => utils.resetStatus(), 3000);
-            }, 1000);
+            const response = await fetch('/download', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ url, itag })
+            });
 
+            if (!response.ok) throw new Error('Download failed');
+
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = 'download.' + (itag.includes('audio') ? 'mp3' : 'mp4');
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(downloadUrl);
+
+            utils.showSuccess('Download complete!');
         } catch (error) {
             console.error('Download error:', error);
             utils.showError(error.message);
@@ -132,10 +139,9 @@ const UI = {
 // Event Listeners
 document.getElementById('youtubeUrl').addEventListener('input', async function(e) {
     const url = e.target.value.trim();
-    utils.resetStatus();
-
+    
     if (!url) {
-        document.getElementById('videoPreview').style.display = 'none';
+        UI.hidePreview();
         return;
     }
 
@@ -154,12 +160,10 @@ document.getElementById('youtubeUrl').addEventListener('input', async function(e
         }
 
         const data = await response.json();
-        UI.currentVideoId = data.id;
         UI.updatePreview(data);
-
     } catch (error) {
         console.error('Preview error:', error);
         utils.showError(error.message);
-        document.getElementById('videoPreview').style.display = 'none';
+        UI.hidePreview();
     }
 }); 
