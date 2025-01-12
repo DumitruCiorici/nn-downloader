@@ -26,6 +26,11 @@ app.post('/convert', async (req, res) => {
     }
 
     try {
+        // Verificăm dacă URL-ul este valid
+        if (!ytdl.validateURL(url)) {
+            return res.status(400).json({ error: 'Invalid YouTube URL' });
+        }
+
         const info = await ytdl.getInfo(url);
         res.json({
             title: info.videoDetails.title,
@@ -47,41 +52,58 @@ app.post('/download', async (req, res) => {
     }
 
     try {
+        // Verificăm dacă URL-ul este valid
+        if (!ytdl.validateURL(url)) {
+            return res.status(400).json({ error: 'Invalid YouTube URL' });
+        }
+
         const info = await ytdl.getInfo(url);
         const title = info.videoDetails.title.replace(/[^\w\s]/gi, '');
 
         if (format === 'mp3') {
-            ytdl(url, {
+            const stream = ytdl(url, {
                 filter: 'audioonly',
                 quality: 'highestaudio'
-            })
-            .on('error', (err) => {
+            });
+
+            stream.on('error', (err) => {
                 console.error('Stream error:', err);
-                res.status(500).json({ error: 'Download failed' });
-            })
-            .on('response', () => {
-                res.header('Content-Type', 'audio/mpeg');
-                res.header('Content-Disposition', `attachment; filename="${title}.mp3"`);
-            })
-            .pipe(res);
+                if (!res.headersSent) {
+                    res.status(500).json({ error: 'Download failed' });
+                }
+            });
+
+            stream.once('response', () => {
+                res.setHeader('Content-Type', 'audio/mpeg');
+                res.setHeader('Content-Disposition', `attachment; filename="${title}.mp3"`);
+            });
+
+            stream.pipe(res);
         } else {
-            ytdl(url, {
+            const stream = ytdl(url, {
                 filter: format => format.hasVideo && format.hasAudio,
                 quality: 'highest'
-            })
-            .on('error', (err) => {
+            });
+
+            stream.on('error', (err) => {
                 console.error('Stream error:', err);
-                res.status(500).json({ error: 'Download failed' });
-            })
-            .on('response', () => {
-                res.header('Content-Type', 'video/mp4');
-                res.header('Content-Disposition', `attachment; filename="${title}.mp4"`);
-            })
-            .pipe(res);
+                if (!res.headersSent) {
+                    res.status(500).json({ error: 'Download failed' });
+                }
+            });
+
+            stream.once('response', () => {
+                res.setHeader('Content-Type', 'video/mp4');
+                res.setHeader('Content-Disposition', `attachment; filename="${title}.mp4"`);
+            });
+
+            stream.pipe(res);
         }
     } catch (error) {
         console.error('Download error:', error);
-        res.status(500).json({ error: 'Download failed' });
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Download failed' });
+        }
     }
 });
 
