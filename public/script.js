@@ -55,42 +55,46 @@ async function processVideo(format) {
 
         // Afișare progress bar
         progressBar.style.display = 'block';
-        statusText.textContent = 'Preparing conversion...';
+        statusText.textContent = 'Starting download...';
         progress.style.width = '20%';
 
         setButtonLoading(format === 'mp4' ? 'video' : 'audio', true);
 
         const API_URL = window.location.origin;
-
-        // Actualizăm fetch-urile pentru a include credentials
-        const fetchOptions = {
+        
+        // Facem request direct pentru descărcare
+        const response = await fetch(`${API_URL}/download`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            credentials: 'same-origin',
             body: JSON.stringify({ url, format })
-        };
+        });
 
-        // Inițiere conversie
-        const convertResponse = await fetch(`${API_URL}/convert`, fetchOptions);
-
-        if (!convertResponse.ok) {
-            const error = await convertResponse.json();
-            throw new Error(error.error || 'Conversion error');
+        if (!response.ok) {
+            throw new Error('Download failed');
         }
 
-        const videoInfo = await convertResponse.json();
+        // Primim blob-ul și îl descărcăm
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
         
-        // Redirecționăm către URL-ul de descărcare
-        const downloadResponse = await fetch(`${API_URL}/download`, fetchOptions);
-        const { downloadUrl } = await downloadResponse.json();
-        
-        // Deschidem URL-ul într-o fereastră nouă
-        window.open(downloadUrl, '_blank');
+        // Setăm numele fișierului din header-ul Content-Disposition dacă există
+        const contentDisposition = response.headers.get('Content-Disposition');
+        const fileName = contentDisposition
+            ? contentDisposition.split('filename=')[1].replace(/"/g, '')
+            : `download.${format}`;
+
+        a.href = downloadUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(downloadUrl);
 
         progress.style.width = '100%';
-        statusText.textContent = 'Opening download page...';
+        statusText.textContent = 'Download complete!';
 
     } catch (error) {
         console.error('Error:', error);

@@ -3,7 +3,10 @@
     "builds": [
         {
             "src": "server.js",
-            "use": "@vercel/node"
+            "use": "@vercel/node",
+            "config": {
+                "buildCommand": "npm run install-deps"
+            }
         },
         {
             "src": "public/**",
@@ -18,10 +21,6 @@
         {
             "src": "/script.js",
             "dest": "/public/script.js"
-        },
-        {
-            "src": "/api/(.*)",
-            "dest": "/server.js"
         },
         {
             "src": "/(.*)",

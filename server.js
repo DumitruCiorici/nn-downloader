@@ -1,14 +1,16 @@
 const express = require('express');
 const cors = require('cors');
+const { exec } = require('child_process');
+const fs = require('fs');
 const path = require('path');
 const bodyParser = require('body-parser');
+const { promisify } = require('util');
+const execAsync = promisify(exec);
 
 const app = express();
 
-// Servim fișierele statice din directorul public
+// Middleware
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Apoi celelalte middleware
 app.use(cors({
     origin: '*',
     methods: ['GET', 'POST'],
@@ -16,6 +18,81 @@ app.use(cors({
     optionsSuccessStatus: 200
 }));
 app.use(bodyParser.json());
+
+// Configurare director pentru descărcări
+const downloadsDir = path.join(__dirname, 'downloads');
+if (!fs.existsSync(downloadsDir)) {
+    fs.mkdirSync(downloadsDir);
+}
+
+// Adăugăm o funcție pentru curățarea periodică a directorului de descărcări
+function cleanupDownloads() {
+    try {
+        const files = fs.readdirSync(downloadsDir);
+        const now = Date.now();
+        files.forEach(file => {
+            const filePath = path.join(downloadsDir, file);
+            const stats = fs.statSync(filePath);
+            // Ștergem fișierele mai vechi de 1 oră
+            if (now - stats.mtime.getTime() > 3600000) {
+                fs.unlinkSync(filePath);
+            }
+        });
+    } catch (error) {
+        console.error('Cleanup error:', error);
+    }
+}
+
+// Rulăm cleanup la fiecare 30 de minute
+setInterval(cleanupDownloads, 1800000);
+
+// Endpoint pentru conversie și descărcare
+app.post('/download', async (req, res) => {
+    const { url, format } = req.body;
+    
+    try {
+        if (!url) {
+            return res.status(400).json({ error: 'URL is missing' });
+        }
+
+        const outputPath = path.join(downloadsDir, '%(title)s.%(ext)s');
+        let command;
+
+        if (format === 'mp3') {
+            command = `yt-dlp -x --audio-format mp3 --audio-quality 0 -o "${outputPath}" ${url}`;
+        } else {
+            command = `yt-dlp -f "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" --merge-output-format mp4 -o "${outputPath}" ${url}`;
+        }
+
+        const { stdout } = await execAsync(command);
+        
+        // Găsim fișierul descărcat
+        const files = fs.readdirSync(downloadsDir);
+        const downloadedFile = files[files.length - 1];
+        const filePath = path.join(downloadsDir, downloadedFile);
+
+        // Verificăm dacă fișierul există
+        if (!fs.existsSync(filePath)) {
+            throw new Error('Download file not found');
+        }
+
+        // Trimitem fișierul
+        res.download(filePath, downloadedFile, (err) => {
+            if (err) {
+                console.error('Download error:', err);
+            }
+            // Ștergem fișierul după trimitere
+            try {
+                fs.unlinkSync(filePath);
+            } catch (unlinkError) {
+                console.error('File deletion error:', unlinkError);
+            }
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Download failed: ' + error.message });
+    }
+});
 
 // Endpoint pentru informații video
 app.post('/convert', async (req, res) => {
@@ -47,30 +124,6 @@ app.post('/convert', async (req, res) => {
         res.status(500).json({ error: 'Error processing video' });
     }
 });
-
-// Endpoint pentru descărcare
-app.post('/download', async (req, res) => {
-    const { url, format } = req.body;
-    
-    try {
-        // Folosim y2mate ca alternativă
-        const downloadUrl = format === 'mp3' 
-            ? `https://www.y2mate.com/youtube-mp3/${getVideoId(url)}`
-            : `https://www.y2mate.com/youtube/${getVideoId(url)}`;
-            
-        res.json({ downloadUrl });
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ error: 'Download error' });
-    }
-});
-
-// Adăugăm funcția getVideoId și aici
-function getVideoId(url) {
-    const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[7].length === 11) ? match[7] : false;
-}
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
