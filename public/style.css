@@ -416,4 +416,52 @@ input:focus::placeholder {
         rgba(255, 255, 255, 0.8), 
         var(--accent-color)
     );
+}
+
+.quality-selector {
+    margin: 1rem 0;
+    padding: 1rem;
+    background: var(--card-bg);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.quality-selector h3 {
+    margin-bottom: 1rem;
+    color: var(--text-color);
+    font-size: 1.1rem;
+}
+
+.quality-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.5rem;
+}
+
+.quality-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    background: transparent;
+    border: 2px solid var(--accent-color);
+    border-radius: 8px;
+    color: var(--accent-color);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.quality-btn:hover {
+    background: var(--accent-color);
+    color: var(--primary-color);
+}
+
+.quality-label {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.quality-size {
+    font-size: 0.8rem;
+    opacity: 0.8;
 } 

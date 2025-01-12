@@ -1,36 +1,40 @@
 let currentVideoId = null;
+let currentFormats = null;
 
-function getVideoId(url) {
-    const regExp = /^.*((youtu.be\/)|(v\/)|(\/u\/\w\/)|(embed\/)|(watch\?))\??v?=?([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[7].length === 11) ? match[7] : false;
-}
+// Funcția pentru afișarea opțiunilor de calitate
+function showQualityOptions(type) {
+    if (!currentFormats) {
+        statusText.textContent = 'Please enter a YouTube URL first';
+        return;
+    }
 
-async function validateYouTubeUrl(url) {
-    const videoId = getVideoId(url);
-    if (!videoId) return false;
+    const qualitySelector = document.getElementById('qualitySelector');
+    const qualityOptions = document.getElementById('qualityOptions');
+    qualityOptions.innerHTML = '';
+
+    const formats = type === 'audio' ? currentFormats.audio : currentFormats.video;
     
-    try {
-        const response = await fetch(`https://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${videoId}&format=json`);
-        return response.ok;
-    } catch (error) {
-        return false;
-    }
+    formats.forEach(format => {
+        const qualityBtn = document.createElement('button');
+        qualityBtn.className = 'quality-btn';
+        
+        // Formatăm informațiile despre calitate
+        const quality = format.qualityLabel || format.audioQuality || 'Unknown';
+        const size = format.contentLength ? `(${(format.contentLength / 1024 / 1024).toFixed(1)} MB)` : '';
+        
+        qualityBtn.innerHTML = `
+            <span class="quality-label">${quality}</span>
+            <span class="quality-size">${size}</span>
+        `;
+        
+        qualityBtn.onclick = () => processVideo(type, format.itag);
+        qualityOptions.appendChild(qualityBtn);
+    });
+
+    qualitySelector.style.display = 'block';
 }
 
-// Adăugăm această funcție pentru a gestiona starea de loading a butoanelor
-function setButtonLoading(format, isLoading) {
-    const button = document.querySelector(`.download-btn.${format}-btn`);
-    if (isLoading) {
-        button.classList.add('loading');
-        button.disabled = true;
-    } else {
-        button.classList.remove('loading');
-        button.disabled = false;
-    }
-}
-
-async function processVideo(format) {
+async function processVideo(format, quality) {
     const urlInput = document.getElementById('youtubeUrl');
     const statusText = document.getElementById('statusText');
     const progressBar = document.getElementById('progressBar');
@@ -48,17 +52,10 @@ async function processVideo(format) {
             throw new Error('Please enter a YouTube link');
         }
 
-        const isValid = await validateYouTubeUrl(url);
-        if (!isValid) {
-            throw new Error('Invalid YouTube link');
-        }
-
         // Afișare progress bar
         progressBar.style.display = 'block';
-        statusText.textContent = 'Processing video...';
-        progress.style.width = '50%';
-
-        setButtonLoading(format === 'mp4' ? 'video' : 'audio', true);
+        statusText.textContent = 'Starting download...';
+        progress.style.width = '20%';
 
         const API_URL = window.location.origin;
         
@@ -68,51 +65,83 @@ async function processVideo(format) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ url, format })
+            body: JSON.stringify({ url, format, quality })
         });
 
         if (!response.ok) {
             throw new Error('Download failed');
         }
 
-        const { downloadUrl } = await response.json();
+        // Procesăm descărcarea ca blob
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
         
-        // Deschidem URL-ul de descărcare într-o fereastră nouă
-        window.open(downloadUrl, '_blank');
+        // Extragem numele fișierului din header
+        const contentDisposition = response.headers.get('content-disposition');
+        const fileName = contentDisposition
+            ? contentDisposition.split('filename=')[1].replace(/"/g, '')
+            : `download.${format}`;
+
+        // Creăm link-ul de descărcare
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(downloadUrl);
 
         progress.style.width = '100%';
-        statusText.textContent = 'Download started! Check your downloads.';
+        statusText.textContent = 'Download complete!';
 
     } catch (error) {
         console.error('Error:', error);
         statusText.textContent = error.message || 'An error occurred. Please try again.';
         progressBar.style.display = 'none';
-    } finally {
-        setButtonLoading(format === 'mp4' ? 'video' : 'audio', false);
     }
 }
 
-// Actualizare preview când se introduce URL-ul
+// Actualizare preview și formate disponibile când se introduce URL-ul
 document.getElementById('youtubeUrl').addEventListener('input', async function(e) {
     const url = e.target.value.trim();
     const previewDiv = document.getElementById('videoPreview');
-    const videoId = getVideoId(url);
-
-    if (videoId && videoId !== currentVideoId) {
-        currentVideoId = videoId;
-        try {
-            const response = await fetch(`https://www.youtube.com/oembed?url=http://www.youtube.com/watch?v=${videoId}&format=json`);
-            if (response.ok) {
-                const data = await response.json();
-                document.getElementById('thumbnail').src = data.thumbnail_url;
-                document.getElementById('videoTitle').textContent = data.title;
-                previewDiv.style.display = 'flex';
-            }
-        } catch (error) {
-            previewDiv.style.display = 'none';
-        }
-    } else if (!videoId) {
+    const qualitySelector = document.getElementById('qualitySelector');
+    
+    // Reset state
+    currentVideoId = null;
+    currentFormats = null;
+    qualitySelector.style.display = 'none';
+    
+    if (!url) {
         previewDiv.style.display = 'none';
-        currentVideoId = null;
+        return;
+    }
+
+    try {
+        const response = await fetch(`${window.location.origin}/convert`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ url })
+        });
+
+        if (!response.ok) {
+            throw new Error('Invalid URL');
+        }
+
+        const data = await response.json();
+        
+        // Actualizăm preview
+        document.getElementById('thumbnail').src = data.thumbnail;
+        document.getElementById('videoTitle').textContent = data.title;
+        previewDiv.style.display = 'flex';
+        
+        // Salvăm formatele disponibile
+        currentFormats = data.formats;
+        
+    } catch (error) {
+        previewDiv.style.display = 'none';
+        console.error('Error:', error);
     }
 }); 
