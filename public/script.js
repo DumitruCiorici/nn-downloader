@@ -62,7 +62,6 @@ const UI = {
     },
 
     displayFormats(formats) {
-        // Curățăm formatele existente
         this.elements.videoFormats.innerHTML = '';
         this.elements.audioFormats.innerHTML = '';
 
@@ -103,32 +102,13 @@ const UI = {
         });
     },
 
-    async startDownload(itag) {
+    startDownload(itag) {
         try {
             utils.showSuccess('Starting download...');
             const url = this.elements.urlInput.value;
-            
-            const response = await fetch('/download', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ url, itag })
-            });
-
-            if (!response.ok) throw new Error('Download failed');
-
-            const blob = await response.blob();
-            const downloadUrl = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = 'download.' + (itag.includes('audio') ? 'mp3' : 'mp4');
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(downloadUrl);
-
-            utils.showSuccess('Download complete!');
+            const downloadUrl = `/download/${itag}?url=${encodeURIComponent(url)}`;
+            window.location.href = downloadUrl;
+            setTimeout(() => utils.showSuccess('Download started!'), 1000);
         } catch (error) {
             console.error('Download error:', error);
             utils.showError(error.message);
