@@ -7,6 +7,61 @@ function formatDuration(seconds) {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
 }
 
+// Funcție pentru formatarea dimensiunii fișierului
+function formatFileSize(bytes) {
+    if (!bytes) return 'Unknown size';
+    const units = ['B', 'KB', 'MB', 'GB'];
+    let size = bytes;
+    let unitIndex = 0;
+    while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex++;
+    }
+    return `${size.toFixed(1)} ${units[unitIndex]}`;
+}
+
+// Funcție pentru afișarea formatelor disponibile
+function displayFormats(formats) {
+    const formatList = document.getElementById('formatList');
+    formatList.innerHTML = '';
+
+    // Adăugăm formate video
+    formats.video.forEach(format => {
+        const div = document.createElement('div');
+        div.className = 'format-option';
+        div.innerHTML = `
+            <div class="format-info">
+                <span class="format-quality">${format.quality}</span>
+                <span class="format-size">${formatFileSize(format.contentLength)}</span>
+            </div>
+            <div class="format-type">
+                <i class="fas fa-video"></i>
+                MP4
+            </div>
+        `;
+        div.onclick = () => processVideo('mp4', format.quality);
+        formatList.appendChild(div);
+    });
+
+    // Adăugăm formate audio
+    formats.audio.forEach(format => {
+        const div = document.createElement('div');
+        div.className = 'format-option';
+        div.innerHTML = `
+            <div class="format-info">
+                <span class="format-quality">${format.quality}</span>
+                <span class="format-size">${formatFileSize(format.contentLength)}</span>
+            </div>
+            <div class="format-type">
+                <i class="fas fa-music"></i>
+                MP3
+            </div>
+        `;
+        div.onclick = () => processVideo('mp3', format.quality);
+        formatList.appendChild(div);
+    });
+}
+
 // Funcție pentru validarea URL-ului
 function isValidYouTubeUrl(url) {
     return url.includes('youtube.com/watch?v=') || 
@@ -48,11 +103,11 @@ document.getElementById('youtubeUrl').addEventListener('input', async function(e
 
         const data = await response.json();
         
-        // Actualizare UI
         document.getElementById('thumbnail').src = data.thumbnail;
         document.getElementById('videoTitle').textContent = data.title;
-        document.getElementById('videoAuthor').textContent = `by ${data.author}`;
+        document.getElementById('videoAuthor').textContent = data.author;
         document.getElementById('videoDuration').textContent = formatDuration(data.duration);
+        displayFormats(data.formats);
         previewDiv.style.display = 'flex';
         
     } catch (error) {

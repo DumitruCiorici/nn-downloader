@@ -478,4 +478,122 @@ footer i {
     padding: 0.2rem 0.5rem;
     border-radius: 4px;
     font-family: 'Orbitron', monospace;
+}
+
+/* Adăugăm stiluri pentru lista de formate */
+.format-list {
+    margin-top: 1rem;
+    display: grid;
+    gap: 0.5rem;
+}
+
+.format-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.format-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-1px);
+}
+
+.format-option.selected {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: var(--accent-color);
+}
+
+.format-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.format-quality {
+    font-weight: 500;
+    color: var(--accent-color);
+}
+
+.format-size {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.format-type {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.format-type i {
+    font-size: 1rem;
+}
+
+/* Îmbunătățim stilurile pentru preview */
+.preview-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.video-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.video-duration {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'Orbitron', monospace;
+}
+
+/* Stiluri pentru butoanele de descărcare */
+.download-options {
+    margin-top: 1.5rem;
+}
+
+.download-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+}
+
+.download-title {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--accent-color);
+}
+
+.download-btn.processing {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    pointer-events: none;
+}
+
+.download-btn.processing::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid var(--accent-color);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spinner 0.6s linear infinite;
 } 

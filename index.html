@@ -34,21 +34,23 @@
             </div>
 
             <div class="preview" id="videoPreview" style="display: none;">
+                <div class="preview-header">
+                    <div class="video-meta">
+                        <span id="videoAuthor"></span>
+                        <span id="videoDuration"></span>
+                    </div>
+                </div>
                 <div class="preview-content">
                     <img id="thumbnail" src="" alt="Video thumbnail" loading="lazy">
                     <div class="video-info">
                         <h3 id="videoTitle"></h3>
-                        <div class="video-details">
-                            <span id="videoAuthor"></span>
-                            <span id="videoDuration"></span>
-                        </div>
-                        <div class="format-info">
-                            <span class="format-badge video">
-                                <i class="fas fa-video"></i> Available in HD
-                            </span>
-                            <span class="format-badge audio">
-                                <i class="fas fa-music"></i> High Quality Audio
-                            </span>
+                        <div class="download-options">
+                            <div class="download-header">
+                                <span class="download-title">Available Formats</span>
+                            </div>
+                            <div class="format-list" id="formatList">
+                                <!-- Formatele vor fi adăugate dinamic -->
+                            </div>
                         </div>
                     </div>
                 </div>
