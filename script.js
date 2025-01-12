@@ -1,19 +1,3 @@
-document.addEventListener('DOMContentLoaded', () => {
-    try {
-        setTimeout(() => {
-            const initialLoading = document.getElementById('initialLoading');
-            if (initialLoading) {
-                initialLoading.classList.add('fade-out');
-                setTimeout(() => {
-                    initialLoading.remove();
-                }, 500);
-            }
-        }, 1500);
-    } catch (error) {
-        console.error('Loading error:', error);
-    }
-});
-
 let currentVideoId = null;
 
 function getVideoId(url) {
@@ -46,21 +30,6 @@ function setButtonLoading(format, isLoading) {
     }
 }
 
-function showLoadingScreen(message = 'Processing...') {
-    const loadingScreen = document.getElementById('loadingScreen');
-    const loadingText = loadingScreen.querySelector('.loading-text');
-    loadingText.textContent = message;
-    loadingScreen.classList.add('active');
-}
-
-function hideLoadingScreen() {
-    const loadingScreen = document.getElementById('loadingScreen');
-    loadingScreen.classList.add('fade-out');
-    setTimeout(() => {
-        loadingScreen.classList.remove('active', 'fade-out');
-    }, 300);
-}
-
 async function processVideo(format) {
     const urlInput = document.getElementById('youtubeUrl');
     const statusText = document.getElementById('statusText');
@@ -91,9 +60,6 @@ async function processVideo(format) {
 
         setButtonLoading(format === 'mp4' ? 'video' : 'audio', true);
 
-        showLoadingScreen('Converting...');
-
-        // Asigurăm-ne că API_URL este definit corect
         const API_URL = window.location.origin;
 
         // Actualizăm fetch-urile pentru a include credentials
@@ -125,12 +91,10 @@ async function processVideo(format) {
 
         progress.style.width = '100%';
         statusText.textContent = 'Download started!';
-        hideLoadingScreen();
 
     } catch (error) {
-        hideLoadingScreen();
-        console.error('Eroare:', error);
-        statusText.textContent = error.message || 'A apărut o eroare. Vă rugăm să încercați din nou.';
+        console.error('Error:', error);
+        statusText.textContent = error.message || 'An error occurred. Please try again.';
         progressBar.style.display = 'none';
     } finally {
         setButtonLoading(format === 'mp4' ? 'video' : 'audio', false);
