@@ -7,7 +7,7 @@ const ytdl = require('ytdl-core');
 const app = express();
 
 app.use(bodyParser.json({ limit: '50mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use('/public', express.static(path.join(__dirname, 'public')));
 app.use(cors());
 
 // Logging pentru debugging
