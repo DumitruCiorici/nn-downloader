@@ -50,25 +50,15 @@
                 </div>
             </div>
 
-            <div class="quality-selector" id="qualitySelector" style="display: none;">
-                <h3>Select Quality:</h3>
-                <div class="quality-options" id="qualityOptions">
-                    <!-- Opțiunile vor fi populate dinamic -->
-                </div>
-                <button class="back-button" onclick="hideQualitySelector()">
-                    <i class="fas fa-arrow-left"></i> Back
-                </button>
-            </div>
-
             <div class="button-group" id="formatButtons">
-                <button onclick="showQualityOptions('video')" class="download-btn video-btn">
+                <button onclick="processVideo('mp4')" class="download-btn video-btn">
                     <i class="fas fa-video"></i>
                     <span>
                         <strong>MP4</strong>
                         <small>Download Video</small>
                     </span>
                 </button>
-                <button onclick="showQualityOptions('audio')" class="download-btn audio-btn">
+                <button onclick="processVideo('mp3')" class="download-btn audio-btn">
                     <i class="fas fa-music"></i>
                     <span>
                         <strong>MP3</strong>
