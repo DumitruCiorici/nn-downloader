@@ -90,17 +90,21 @@ async function processVideo(format) {
 
         showLoadingScreen('Converting...');
 
-        // În loc de localhost, folosim URL-uri relative
-        const API_URL = window.location.origin; // Aceasta va lua automat URL-ul corect
+        // Asigurăm-ne că API_URL este definit corect
+        const API_URL = window.location.origin;
 
-        // Inițiere conversie
-        const convertResponse = await fetch(`${API_URL}/convert`, {
+        // Actualizăm fetch-urile pentru a include credentials
+        const fetchOptions = {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
+            credentials: 'same-origin',
             body: JSON.stringify({ url, format })
-        });
+        };
+
+        // Inițiere conversie
+        const convertResponse = await fetch(`${API_URL}/convert`, fetchOptions);
 
         if (!convertResponse.ok) {
             const error = await convertResponse.json();
@@ -114,13 +118,7 @@ async function processVideo(format) {
         showLoadingScreen('Downloading...');
 
         // Descărcare fișier
-        const downloadResponse = await fetch(`${API_URL}/download`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ url, format })
-        });
+        const downloadResponse = await fetch(`${API_URL}/download`, fetchOptions);
 
         if (!downloadResponse.ok) {
             const error = await downloadResponse.json();

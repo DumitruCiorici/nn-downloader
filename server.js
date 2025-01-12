@@ -137,6 +137,14 @@ app.post('/download', async (req, res) => {
     }
 });
 
+// Adăugăm servirea fișierelor statice
+app.use(express.static(path.join(__dirname, '/')));
+
+// Adăugăm o rută pentru pagina principală
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 const PORT = process.env.PORT || 3005;
 app.listen(PORT, () => {
     console.log(`Serverul rulează pe portul ${PORT}`);

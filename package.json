@@ -1,5 +1,5 @@
 {
-  "name": "nn-music-downloader",
+  "name": "nn-downloader",
   "version": "1.0.0",
   "main": "server.js",
   "engines": {
