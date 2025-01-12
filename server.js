@@ -39,19 +39,47 @@ app.post('/download', async (req, res) => {
         const info = await ytdl.getInfo(url);
         const videoTitle = info.videoDetails.title.replace(/[^\w\s]/gi, '');
 
-        const options = {
-            quality: format === 'mp3' ? 'highestaudio' : 'highest',
-            filter: format === 'mp3' ? 'audioonly' : 'audioandvideo'
-        };
+        if (format === 'mp3') {
+            // Pentru MP3, folosim cea mai bună calitate audio
+            const stream = ytdl(url, {
+                quality: 'highestaudio',
+                filter: 'audioonly'
+            });
 
-        res.setHeader('Content-Type', format === 'mp3' ? 'audio/mpeg' : 'video/mp4');
-        res.setHeader('Content-Disposition', `attachment; filename="${videoTitle}.${format}"`);
+            res.setHeader('Content-Type', 'audio/mpeg');
+            res.setHeader('Content-Disposition', `attachment; filename="${videoTitle}.mp3"`);
+            
+            stream.pipe(res);
+        } else {
+            // Pentru MP4, luăm cel mai bun format cu audio și video
+            const format = ytdl.chooseFormat(info.formats, {
+                quality: 'highest',
+                filter: 'audioandvideo'
+            });
 
-        ytdl(url, options).pipe(res);
+            const stream = ytdl(url, {
+                format: format
+            });
+
+            res.setHeader('Content-Type', 'video/mp4');
+            res.setHeader('Content-Disposition', `attachment; filename="${videoTitle}.mp4"`);
+            
+            stream.pipe(res);
+        }
+
+        // Gestionare erori pentru stream
+        stream.on('error', (error) => {
+            console.error('Stream error:', error);
+            if (!res.headersSent) {
+                res.status(500).json({ error: 'Download failed' });
+            }
+        });
 
     } catch (error) {
         console.error('Error:', error);
-        res.status(500).json({ error: 'Download failed' });
+        if (!res.headersSent) {
+            res.status(500).json({ error: 'Download failed' });
+        }
     }
 });
 
