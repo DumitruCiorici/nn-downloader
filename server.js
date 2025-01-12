@@ -6,6 +6,7 @@ const ytdl = require('ytdl-core');
 
 const app = express();
 
+// Configurare middleware
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use('/public', express.static(path.join(__dirname, 'public')));
 app.use(cors());
@@ -16,22 +17,26 @@ app.use((req, res, next) => {
     next();
 });
 
+// Funcție pentru validarea URL-ului YouTube
+function isValidYouTubeUrl(url) {
+    try {
+        return ytdl.validateURL(url);
+    } catch (error) {
+        return false;
+    }
+}
+
 // Endpoint pentru preview
 app.post('/convert', async (req, res) => {
     console.log('Convert request received:', req.body);
     const { url } = req.body;
     
-    if (!url) {
-        return res.status(400).json({ error: 'URL is missing' });
+    if (!url || !isValidYouTubeUrl(url)) {
+        return res.status(400).json({ error: 'Invalid YouTube URL' });
     }
 
     try {
-        // Verificăm dacă URL-ul este valid
-        if (!ytdl.validateURL(url)) {
-            return res.status(400).json({ error: 'Invalid YouTube URL' });
-        }
-
-        const info = await ytdl.getInfo(url);
+        const info = await ytdl.getBasicInfo(url);
         res.json({
             title: info.videoDetails.title,
             thumbnail: info.videoDetails.thumbnails[0].url
@@ -47,58 +52,40 @@ app.post('/download', async (req, res) => {
     console.log('Download request received:', req.body);
     const { url, format } = req.body;
     
-    if (!url) {
-        return res.status(400).json({ error: 'URL is missing' });
+    if (!url || !isValidYouTubeUrl(url)) {
+        return res.status(400).json({ error: 'Invalid YouTube URL' });
     }
 
     try {
-        // Verificăm dacă URL-ul este valid
-        if (!ytdl.validateURL(url)) {
-            return res.status(400).json({ error: 'Invalid YouTube URL' });
-        }
-
-        const info = await ytdl.getInfo(url);
+        const info = await ytdl.getBasicInfo(url);
         const title = info.videoDetails.title.replace(/[^\w\s]/gi, '');
 
-        if (format === 'mp3') {
-            const stream = ytdl(url, {
-                filter: 'audioonly',
-                quality: 'highestaudio'
-            });
+        const options = {
+            quality: format === 'mp3' ? 'highestaudio' : 'highest',
+            filter: format === 'mp3' ? 'audioonly' : 'audioandvideo'
+        };
 
-            stream.on('error', (err) => {
-                console.error('Stream error:', err);
-                if (!res.headersSent) {
-                    res.status(500).json({ error: 'Download failed' });
-                }
-            });
+        const stream = ytdl(url, options);
 
-            stream.once('response', () => {
+        stream.on('error', (err) => {
+            console.error('Stream error:', err);
+            if (!res.headersSent) {
+                res.status(500).json({ error: 'Download failed' });
+            }
+        });
+
+        stream.once('response', () => {
+            if (format === 'mp3') {
                 res.setHeader('Content-Type', 'audio/mpeg');
                 res.setHeader('Content-Disposition', `attachment; filename="${title}.mp3"`);
-            });
-
-            stream.pipe(res);
-        } else {
-            const stream = ytdl(url, {
-                filter: format => format.hasVideo && format.hasAudio,
-                quality: 'highest'
-            });
-
-            stream.on('error', (err) => {
-                console.error('Stream error:', err);
-                if (!res.headersSent) {
-                    res.status(500).json({ error: 'Download failed' });
-                }
-            });
-
-            stream.once('response', () => {
+            } else {
                 res.setHeader('Content-Type', 'video/mp4');
                 res.setHeader('Content-Disposition', `attachment; filename="${title}.mp4"`);
-            });
+            }
+        });
 
-            stream.pipe(res);
-        }
+        stream.pipe(res);
+
     } catch (error) {
         console.error('Download error:', error);
         if (!res.headersSent) {
@@ -107,9 +94,14 @@ app.post('/download', async (req, res) => {
     }
 });
 
-// Adăugăm înapoi ruta pentru index.html
+// Ruta pentru index.html
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Ruta pentru favicon
+app.get('/favicon.ico', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'favicon.ico'));
 });
 
 const PORT = process.env.PORT || 3005;
