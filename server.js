@@ -13,18 +13,13 @@ app.use(cors());
 // Funcție pentru a extrage ID-ul video
 function getYoutubeID(url) {
     try {
-        if (url.includes('youtu.be/')) {
-            return url.split('youtu.be/')[1].split('?')[0];
-        }
-        if (url.includes('youtube.com/watch?v=')) {
-            return url.split('v=')[1].split('&')[0];
-        }
-        return null;
+        return ytdl.getVideoID(url);
     } catch (error) {
         return null;
     }
 }
 
+// Endpoint pentru preview video
 app.post('/convert', async (req, res) => {
     try {
         const { url } = req.body;
@@ -34,44 +29,48 @@ app.post('/convert', async (req, res) => {
             return res.status(400).json({ error: 'Please enter a YouTube URL' });
         }
 
-        const videoID = getYoutubeID(url);
-        if (!videoID) {
-            return res.status(400).json({ error: 'Invalid YouTube URL' });
-        }
-
-        const videoUrl = `https://www.youtube.com/watch?v=${videoID}`;
-        
-        const info = await ytdl.getInfo(videoUrl, {
+        // Folosim ytdl.getInfo direct cu URL-ul
+        const info = await ytdl.getInfo(url, {
             requestOptions: {
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                    'Accept-Language': 'en-US,en;q=0.5'
                 }
             }
         });
 
+        // Procesăm formatele disponibile
         const formats = {
             video: [],
             audio: []
         };
 
-        info.formats.forEach(format => {
-            const item = {
+        // Filtrăm formatele
+        const videoFormats = ytdl.filterFormats(info.formats, 'videoandaudio');
+        const audioFormats = ytdl.filterFormats(info.formats, 'audioonly');
+
+        // Adăugăm formatele video
+        videoFormats.forEach(format => {
+            formats.video.push({
                 itag: format.itag,
-                quality: format.qualityLabel || `${format.audioBitrate}kbps`,
+                quality: format.qualityLabel,
                 size: format.contentLength,
                 mimeType: format.mimeType,
-                url: format.url
-            };
-
-            if (format.hasVideo && format.hasAudio) {
-                formats.video.push(item);
-            } else if (format.hasAudio && !format.hasVideo) {
-                formats.audio.push(item);
-            }
+                container: format.container
+            });
         });
 
+        // Adăugăm formatele audio
+        audioFormats.forEach(format => {
+            formats.audio.push({
+                itag: format.itag,
+                quality: `${format.audioBitrate}kbps`,
+                size: format.contentLength,
+                mimeType: format.mimeType,
+                container: format.container
+            });
+        });
+
+        // Returnăm informațiile necesare
         res.json({
             title: info.videoDetails.title,
             thumbnail: info.videoDetails.thumbnails[0].url,
@@ -89,6 +88,7 @@ app.post('/convert', async (req, res) => {
     }
 });
 
+// Endpoint pentru descărcare
 app.get('/download/:itag', async (req, res) => {
     try {
         const { url } = req.query;
@@ -98,20 +98,14 @@ app.get('/download/:itag', async (req, res) => {
             return res.status(400).json({ error: 'Missing URL or format selection' });
         }
 
-        const videoID = getYoutubeID(url);
-        if (!videoID) {
-            return res.status(400).json({ error: 'Invalid YouTube URL' });
-        }
-
-        const videoUrl = `https://www.youtube.com/watch?v=${videoID}`;
-        
-        const info = await ytdl.getInfo(videoUrl);
+        const info = await ytdl.getInfo(url);
         const format = info.formats.find(f => f.itag === parseInt(itag));
 
         if (!format) {
             return res.status(404).json({ error: 'Format not found' });
         }
 
+        // Redirect către URL-ul direct
         res.redirect(format.url);
 
     } catch (error) {
