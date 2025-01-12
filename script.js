@@ -111,59 +111,21 @@ async function processVideo(format) {
 
         if (!convertResponse.ok) {
             const error = await convertResponse.json();
-            throw new Error(error.error || 'Eroare la conversie');
+            throw new Error(error.error || 'Conversion error');
         }
 
         const videoInfo = await convertResponse.json();
-        progress.style.width = '50%';
-        statusText.textContent = 'Downloading...';
-
-        showLoadingScreen('Downloading...');
-
-        // Descărcare fișier
+        
+        // Redirecționăm către URL-ul de descărcare
         const downloadResponse = await fetch(`${API_URL}/download`, fetchOptions);
-
-        if (!downloadResponse.ok) {
-            const error = await downloadResponse.json();
-            throw new Error(error.error || 'Eroare la descărcare');
-        }
-
-        progress.style.width = '90%';
+        const { downloadUrl } = await downloadResponse.json();
         
-        // Procesare descărcare
-        const blob = await downloadResponse.blob();
-        const downloadUrl = window.URL.createObjectURL(blob);
-        
-        // Creăm un nume de fișier valid
-        const safeTitle = videoInfo.title.replace(/[^a-z0-9]/gi, '_');
-        const filename = `${safeTitle}.${format}`;
-
-        const a = document.createElement('a');
-        a.href = downloadUrl;
-        a.download = filename;
-        
-        // Forțăm descărcarea
-        if (format === 'mp3') {
-            a.setAttribute('type', 'audio/mpeg');
-        } else {
-            a.setAttribute('type', 'video/mp4');
-        }
-        
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(downloadUrl);
+        // Deschidem URL-ul de descărcare într-o nouă fereastră
+        window.open(downloadUrl, '_blank');
 
         progress.style.width = '100%';
-        statusText.textContent = 'Download complete!';
-
+        statusText.textContent = 'Download started!';
         hideLoadingScreen();
-
-        // Ascunde progress bar după 3 secunde
-        setTimeout(() => {
-            progressBar.style.display = 'none';
-            statusText.textContent = '';
-        }, 3000);
 
     } catch (error) {
         hideLoadingScreen();
